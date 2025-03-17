@@ -1,12 +1,15 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import Feather from '@expo/vector-icons/Feather';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -20,24 +23,60 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
-          default: {},
+          default: {
+            backgroundColor: '#873A3A',
+            borderTopLeftRadius: 30,
+            borderTopRightRadius: 30,
+            height: 70,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingTop: 10,
+
+            
+          }, 
         }),
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: 'bold',
+          marginTop: 5,
+        },
       }}>
+
+      {/* Home Page */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="home" size={28} color={color} />,
         }}
       />
+
+      {/* Challenge History */}
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Search',
+          tabBarIcon: ({ color }) => <FontAwesome name="search" size={28} color={color} />,
+        }}
+      />
+
+      {/* Challenge Categories */}
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: 'Cart',
+          tabBarIcon: ({ color }) => <Feather name="shopping-cart" size={28} color={color} />,
+        }}
+      />
+
+      {/* Settings */}
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
         }}
       />
     </Tabs>
