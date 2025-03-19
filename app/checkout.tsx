@@ -1,23 +1,31 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function Checkout() {
   const router = useRouter();
 
+  // Function to show confirmation alert
+  const handlePayment = () => {
+    Alert.alert(
+      "Confirm Payment",
+      "Are you sure you want to proceed with the payment?",
+      [
+      { text: "Cancel", style: "cancel" },
+      { text: "Yes, Proceed", onPress: () => Alert.alert("Payment Successful", "Your payment has been processed."), style: "default" },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
-    
       <TouchableOpacity style={styles.backButton} onPress={() => router.push("/")}>
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-     
       <Text style={styles.title}>Checkout</Text>
       <Text style={styles.text}>Confirm your order details and proceed with payment.</Text>
 
-   
       <View style={styles.summaryContainer}>
         <Text style={styles.summaryTitle}>Order Summary</Text>
         <View style={styles.divider} />
@@ -31,8 +39,7 @@ export default function Checkout() {
         </View>
       </View>
 
-     
-      <TouchableOpacity style={styles.payButton}>
+      <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
         <Text style={styles.payText}>Proceed to Payment</Text>
       </TouchableOpacity>
     </View>

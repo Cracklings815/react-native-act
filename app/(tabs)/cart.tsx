@@ -26,7 +26,7 @@ export default function Cart() {
       name: "Blue Dragon Guppy",
       price: 50,
       quantity: 2,
-      image: require("@+/assets/images/bluedragon.jpg"),
+      image: require("@/assets/images/bluedragon.jpg"),
     },
   ];
 

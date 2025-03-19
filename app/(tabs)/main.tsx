@@ -1,4 +1,4 @@
-import { Image, StyleSheet, View, FlatList, Text } from 'react-native';
+import { Image, StyleSheet, View, FlatList, Text, TouchableOpacity, Alert } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 
 const products = [
@@ -18,10 +18,10 @@ const products = [
   },
   {
     id: '3',
-    name: 'Black Moscow Guppy',
+    name: 'Half Black White Guppy',
     price: 80,
     stocks: 50,
-    image: require('@/assets/images/moscow.jpg'),
+    image: require('@/assets/images/hbwhite.jpg'),
   },
   {
     id: '4',
@@ -47,6 +47,23 @@ const products = [
 ];
 
 export default function HomeScreen() {
+  // Function to show alert
+  interface Product {
+    id: string;
+    name: string;
+    price: number;
+    stocks: number;
+    image: any; // Use a more specific type if possible for the image (e.g., ImageSourcePropType)
+  }
+
+  const showAlert = (item: Product): void => {
+    Alert.alert(
+      item.name, 
+      `Price: ₱${item.price}\nStock: ${item.stocks} left`,
+      [{ text: "OK", style: "default" }]
+    );
+  };
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.flatListContainer}>
@@ -55,12 +72,12 @@ export default function HomeScreen() {
           numColumns={2}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.productCard}>
+            <TouchableOpacity onPress={() => showAlert(item)} style={styles.productCard}>
               <Image source={item.image} style={styles.productImage} />
               <Text style={styles.productName}>{item.name}</Text>
               <Text style={styles.productPrice}>₱ {item.price}</Text>
               <Text style={styles.productStock}>{item.stocks} in stock</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>
@@ -77,7 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#110E0E',
   },
   flatListContainer: {
-    width: '90%', // Adjust the width to keep the grid centered
+    width: '90%',
   },
   productCard: {
     flex: 1,

@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons"; // Import icons
+import { Ionicons } from "@expo/vector-icons"; 
+import { Redirect } from "expo-router";
 
 interface State {
   username: string;
@@ -13,6 +14,7 @@ interface State {
   postalCode: string;
   country: string;
   editingAddress: boolean;
+  redirectToLogin: boolean;
 }
 
 export default class Settings extends Component<{}, State> {
@@ -26,7 +28,9 @@ export default class Settings extends Component<{}, State> {
     postalCode: "",
     country: "",
     editingAddress: false,
+    redirectToLogin: false,
   };
+  
 
   pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -44,7 +48,12 @@ export default class Settings extends Component<{}, State> {
   handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Logout", onPress: () => console.log("User logged out") },
+      {
+        text: "Logout",
+        onPress: () => {
+          this.setState({ redirectToLogin: true }); 
+        },
+      },
     ]);
   };
 
@@ -53,6 +62,10 @@ export default class Settings extends Component<{}, State> {
   };
 
   render() {
+
+    if (this.state.redirectToLogin) {
+      return <Redirect href="/login" />;
+    }
     return (
       <View style={styles.container}>
         {/* Header */}
