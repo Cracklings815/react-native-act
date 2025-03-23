@@ -47,6 +47,7 @@ export default function Cart() {
             <View style={styles.itemDetails}>
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemPrice}>₱ {item.price}</Text>
+              <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
             </View>
           </View>
         )}
@@ -55,7 +56,7 @@ export default function Cart() {
       <View style={styles.totalContainer}>
         <Text style={styles.totalText}>Total: ₱ {calculateTotal()}</Text>
         <TouchableOpacity style={styles.checkoutButton} onPress={() => router.push("/checkout")}>
-          <Text style={styles.checkoutText}>Checkout</Text>
+          <Text style={styles.checkoutText}>Proceed to Checkout</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -65,61 +66,75 @@ export default function Cart() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#110E0E",
-    padding: 15,
+    backgroundColor: "#121212",
+    padding: 20,
   },
   header: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#FFF",
-    marginBottom: 30,
     textAlign: "center",
-    marginTop: 30,
+    marginBottom: 20,
   },
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1E1E1E",
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 5,
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   itemImage: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 10,
-    marginRight: 10,
+    marginRight: 15,
   },
   itemDetails: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#FFF",
+    marginBottom: 4,
   },
   itemPrice: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#FF5C5C",
+  },
+  itemQuantity: {
+    fontSize: 14,
+    color: "#AAA",
   },
   totalContainer: {
     marginTop: 20,
-    padding: 10,
+    paddingVertical: 15,
     borderTopWidth: 1,
-    borderColor: "#555",
+    borderColor: "#333",
     alignItems: "center",
   },
   totalText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#FFF",
   },
   checkoutButton: {
-    marginTop: 10,
+    marginTop: 12,
     backgroundColor: "#5CFF8A",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
     borderRadius: 10,
+    shadowColor: "#5CFF8A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
   },
   checkoutText: {
     fontSize: 16,
