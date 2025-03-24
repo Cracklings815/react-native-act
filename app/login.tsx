@@ -30,7 +30,7 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Login to continue</Text>
+      
 
       <View style={styles.inputContainer}>
         <Ionicons name="mail" size={20} color="#873A3A" style={styles.icon} />
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   loginText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#000",
+    color: "white",
   },
   signupContainer: {
     flexDirection: "row",
