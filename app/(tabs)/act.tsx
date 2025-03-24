@@ -9,12 +9,27 @@ interface Info {
 const Activity = () => {
   const [name, setName] = useState("");
   const [course, setCourse] = useState("");
-  const [Data, setData] = useState<Info>({ name: "", course: "" }); 
+  const [Data, setData] = useState<Info>({ name: "", course: "" });
 
   const SubmitBtn = () => {
     if (name && course) {
-      setData({ name, course });
-      Alert.alert("Success", "Info Submitted");
+      Alert.alert(
+        "Confirmation",
+        "Are you sure you want to submit?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "OK",
+            onPress: () => {
+              setData({ name, course });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } else {
       Alert.alert("Error");
     }
@@ -40,7 +55,6 @@ const Activity = () => {
           <Text style={styles.Text}>You are from: {Data.course}</Text>
         </View>
       </View>
-
     </View>
   );
 };
@@ -83,7 +97,6 @@ const styles = StyleSheet.create({
   display: {
     marginTop: 20,
     alignItems: "center",
-    
   },
   Text: {
     fontSize: 16,
