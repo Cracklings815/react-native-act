@@ -11,7 +11,7 @@ const Activity = () => {
   const [course, setCourse] = useState("");
   const [Data, setData] = useState<Info>({ name: "", course: "" }); 
 
-  const handleSubmit = () => {
+  const SubmitBtn = () => {
     if (name && course) {
       setData({ name, course });
       Alert.alert("Success", "Info Submitted");
@@ -30,7 +30,7 @@ const Activity = () => {
         <TextInput style={styles.input} placeholder="Course" placeholderTextColor="#888" value={course} onChangeText={setCourse} />
       </View>
 
-      <TouchableOpacity style={styles.Button} onPress={handleSubmit}>
+      <TouchableOpacity style={styles.Button} onPress={SubmitBtn}>
         <Text style={styles.submitText}>Submit</Text>
       </TouchableOpacity>
 
@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
   display: {
     marginTop: 20,
     alignItems: "center",
+    
   },
   Text: {
     fontSize: 16,
