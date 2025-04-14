@@ -10,6 +10,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Feather from '@expo/vector-icons/Feather';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -53,7 +54,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Challenge History */}
+ 
       <Tabs.Screen
         name="search"
         options={{
@@ -62,7 +63,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Challenge Categories */}
+
       <Tabs.Screen
         name="cart"
         options={{
@@ -79,6 +80,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
         }}
       />
+<<<<<<< HEAD
       {/* <Tabs.Screen
         name="yap"
         options={{
@@ -86,6 +88,16 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
         }}
       /> */}
+=======
+
+      <Tabs.Screen
+        name="act"
+        options={{
+          title: 'Activity',
+          tabBarIcon: ({ color }) => <MaterialIcons name="local-activity" size={24} color={color} />,
+        }}
+      />
+>>>>>>> 4f57d473e9acf6a3b9a4d2a6eab085d0b30d8647
     </Tabs>
     
   );
