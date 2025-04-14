@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons"; 
+import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
 
 interface State {
@@ -15,6 +15,7 @@ interface State {
   country: string;
   editingAddress: boolean;
   redirectToLogin: boolean;
+  redirectToYap: boolean;
 }
 
 export default class Settings extends Component<{}, State> {
@@ -29,8 +30,8 @@ export default class Settings extends Component<{}, State> {
     country: "",
     editingAddress: false,
     redirectToLogin: false,
+    redirectToYap: false,
   };
-  
 
   pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -45,13 +46,17 @@ export default class Settings extends Component<{}, State> {
     }
   };
 
+  handleYap = () => {
+    this.setState({ redirectToYap: true });
+  };
+
   handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Logout",
         onPress: () => {
-          this.setState({ redirectToLogin: true }); 
+          this.setState({ redirectToLogin: true });
         },
       },
     ]);
@@ -62,16 +67,18 @@ export default class Settings extends Component<{}, State> {
   };
 
   render() {
-
     if (this.state.redirectToLogin) {
       return <Redirect href="/login" />;
     }
+
+    if (this.state.redirectToYap) {
+      return <Redirect href="/yap" />;
+    }
+
     return (
       <View style={styles.container}>
-        {/* Header */}
         <Text style={styles.header}>Settings</Text>
 
-        {/* Profile Picture */}
         <TouchableOpacity onPress={this.pickImage} style={styles.profilePicContainer}>
           <Image
             source={
@@ -84,7 +91,6 @@ export default class Settings extends Component<{}, State> {
           </View>
         </TouchableOpacity>
 
-        {/* Username and Email */}
         <View style={styles.inputContainer}>
           <Ionicons name="person" size={20} color="#40D740" style={styles.inputIcon} />
           <TextInput
@@ -94,6 +100,7 @@ export default class Settings extends Component<{}, State> {
             placeholderTextColor="#888"
           />
         </View>
+
         <View style={styles.inputContainer}>
           <Ionicons name="mail" size={20} color="#40D740" style={styles.inputIcon} />
           <TextInput
@@ -105,8 +112,8 @@ export default class Settings extends Component<{}, State> {
           />
         </View>
 
-        {/* Shipping Address Section */}
         <Text style={styles.sectionHeader}>Shipping Address</Text>
+
         {this.state.editingAddress ? (
           <>
             <View style={styles.inputContainer}>
@@ -173,24 +180,25 @@ export default class Settings extends Component<{}, State> {
           </View>
         )}
 
-        {/* Change Address Button */}
         <TouchableOpacity
           style={styles.changeAddressButton}
-          onPress={() => this.setState((prevState) => ({ editingAddress: !prevState.editingAddress }))}
+          onPress={() => this.setState((prev) => ({ editingAddress: !prev.editingAddress }))}
         >
           <Text style={styles.changeAddressText}>
             {this.state.editingAddress ? "Save Address" : "Change Address"}
           </Text>
         </TouchableOpacity>
 
-        {/* Change Password Button */}
         <TouchableOpacity style={styles.changePasswordButton} onPress={this.handleChangePassword}>
           <Text style={styles.changePasswordText}>Change Password</Text>
         </TouchableOpacity>
 
-        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={this.handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={this.handleYap}>
+          <Text style={styles.logoutText}>Yap</Text>
         </TouchableOpacity>
       </View>
     );

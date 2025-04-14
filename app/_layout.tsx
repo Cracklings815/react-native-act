@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
          <Stack.Screen name="addtocart" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen name="yap" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
