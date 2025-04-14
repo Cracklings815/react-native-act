@@ -80,15 +80,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
         }}
       />
-<<<<<<< HEAD
-      {/* <Tabs.Screen
-        name="yap"
-        options={{
-          title: 'yap',
-          tabBarIcon: ({ color }) => <Ionicons name="settings" size={28} color={color} />,
-        }}
-      /> */}
-=======
 
       <Tabs.Screen
         name="act"
@@ -97,7 +88,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MaterialIcons name="local-activity" size={24} color={color} />,
         }}
       />
->>>>>>> 4f57d473e9acf6a3b9a4d2a6eab085d0b30d8647
     </Tabs>
     
   );
