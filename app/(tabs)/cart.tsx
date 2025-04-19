@@ -1,5 +1,13 @@
-import React from "react";
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+} from "react-native";
 import { useRouter } from "expo-router";
 
 interface CartItem {
@@ -30,6 +38,20 @@ export default function Cart() {
     },
   ];
 
+  // Animation setup
+  const animations = useRef(cartItems.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const anims = animations.map((anim) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      })
+    );
+    Animated.stagger(150, anims).start();
+  }, [animations]);
+
   const calculateTotal = (): number => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   };
@@ -41,16 +63,24 @@ export default function Cart() {
       <FlatList
         data={cartItems}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.cartItem}>
-            <Image source={item.image} style={styles.itemImage} />
-            <View style={styles.itemDetails}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>₱ {item.price}</Text>
-              <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
-            </View>
-          </View>
-        )}
+        renderItem={({ item, index }) => {
+          const opacity = animations[index];
+          const scale = opacity.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          });
+
+          return (
+            <Animated.View style={[styles.cartItem, { opacity, transform: [{ scale }] }]}>
+              <Image source={item.image} style={styles.itemImage} />
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemPrice}>₱ {item.price}</Text>
+                <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+              </View>
+            </Animated.View>
+          );
+        }}
       />
 
       <View style={styles.totalContainer}>

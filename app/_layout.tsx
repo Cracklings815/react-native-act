@@ -28,7 +28,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="checkout" options={{ headerShown: false }} />
@@ -37,6 +37,9 @@ export default function RootLayout() {
         <Stack.Screen name="act" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Stack.Screen name="yap" options={{ headerShown: false }} />
+        <Stack.Screen name="act2" options={{ headerShown: false }} />
+        {/* <Stack.Screen name="flatlist" options={{ headerShown: true }} />
+        <Stack.Screen name="virtualList" options={{ headerShown: true }} /> */}
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

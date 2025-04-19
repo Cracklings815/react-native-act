@@ -1,4 +1,12 @@
-import { Image, StyleSheet, View, FlatList, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  Image,
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+} from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 
@@ -16,27 +24,51 @@ const products = [
 ];
 
 export default function HomeScreen() {
+  // Create an Animated.Value for each product
+  const animations = useRef(products.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const staggerAnimations = animations.map(anim =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      })
+    );
+    Animated.stagger(100, staggerAnimations).start();
+  }, [animations]);
+
   return (
     <ThemedView style={styles.container}>
       <Text style={styles.header}>Available Fish</Text>
-      <FlatList
-        data={products}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.flatListContainer}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            onPress={() => router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })} 
-            style={styles.productCard}
-            activeOpacity={0.8}
-          >
-            <Image source={item.image} style={styles.productImage} />
-            <Text style={styles.productName}>{item.name}</Text>
-            <Text style={styles.productPrice}>₱ {item.price}</Text>
-            <Text style={styles.productStock}>{item.stocks} in stock</Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.flatListContainer}>
+        {products.map((item, index) => {
+          const opacity = animations[index];
+          const scale = opacity.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          });
+          return (
+            <Animated.View
+              key={item.id}
+              style={[styles.productCard, { opacity, transform: [{ scale }] }]}
+            >
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
+                }
+                activeOpacity={0.8}
+                style={styles.touchable}
+              >
+                <Image source={item.image} style={styles.productImage} />
+                <Text style={styles.productName}>{item.name}</Text>
+                <Text style={styles.productPrice}>₱ {item.price}</Text>
+                <Text style={styles.productStock}>{item.stocks} in stock</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
+      </View>
     </ThemedView>
   );
 }
@@ -55,19 +87,24 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   flatListContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingBottom: 20,
   },
   productCard: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#252525',
     borderRadius: 12,
-    padding: 15,
-    margin: 8,
-    alignItems: 'center',
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
+  },
+  touchable: {
+    alignItems: 'center',
+    padding: 15,
   },
   productImage: {
     width: 120,
@@ -81,6 +118,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+    marginBottom: 4,
   },
   productPrice: {
     color: '#F39C12',
@@ -90,5 +128,6 @@ const styles = StyleSheet.create({
   productStock: {
     fontSize: 12,
     color: '#A0A0A0',
+    marginTop: 4,
   },
 });

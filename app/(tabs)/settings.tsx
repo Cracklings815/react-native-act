@@ -1,5 +1,14 @@
 import React, { Component } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
@@ -16,6 +25,7 @@ interface State {
   editingAddress: boolean;
   redirectToLogin: boolean;
   redirectToYap: boolean;
+  redirectToAct2: boolean;
 }
 
 export default class Settings extends Component<{}, State> {
@@ -31,6 +41,7 @@ export default class Settings extends Component<{}, State> {
     editingAddress: false,
     redirectToLogin: false,
     redirectToYap: false,
+    redirectToAct2: false,
   };
 
   pickImage = async () => {
@@ -46,19 +57,10 @@ export default class Settings extends Component<{}, State> {
     }
   };
 
-  handleYap = () => {
-    this.setState({ redirectToYap: true });
-  };
-
   handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        onPress: () => {
-          this.setState({ redirectToLogin: true });
-        },
-      },
+      { text: "Logout", onPress: () => this.setState({ redirectToLogin: true }) },
     ]);
   };
 
@@ -67,22 +69,20 @@ export default class Settings extends Component<{}, State> {
   };
 
   render() {
-    if (this.state.redirectToLogin) {
-      return <Redirect href="/login" />;
-    }
-
-    if (this.state.redirectToYap) {
-      return <Redirect href="/yap" />;
-    }
+    if (this.state.redirectToLogin) return <Redirect href="/login" />;
+    if (this.state.redirectToYap) return <Redirect href="/yap" />;
+    if (this.state.redirectToAct2) return <Redirect href="/act2" />;
 
     return (
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         <Text style={styles.header}>Settings</Text>
 
         <TouchableOpacity onPress={this.pickImage} style={styles.profilePicContainer}>
           <Image
             source={
-              this.state.profilePic ? { uri: this.state.profilePic } : require("@/assets/images/2x2.png")
+              this.state.profilePic
+                ? { uri: this.state.profilePic }
+                : require("@/assets/images/2x2.png")
             }
             style={styles.profilePic}
           />
@@ -116,57 +116,35 @@ export default class Settings extends Component<{}, State> {
 
         {this.state.editingAddress ? (
           <>
-            <View style={styles.inputContainer}>
-              <Ionicons name="home" size={20} color="#40D740" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={this.state.street}
-                onChangeText={(text) => this.setState({ street: text })}
-                placeholder="Street"
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Ionicons name="location" size={20} color="#40D740" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={this.state.city}
-                onChangeText={(text) => this.setState({ city: text })}
-                placeholder="City"
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Ionicons name="map" size={20} color="#40D740" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={this.state.state}
-                onChangeText={(text) => this.setState({ state: text })}
-                placeholder="State"
-                placeholderTextColor="#888"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Ionicons name="code" size={20} color="#40D740" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={this.state.postalCode}
-                onChangeText={(text) => this.setState({ postalCode: text })}
-                placeholder="Postal Code"
-                placeholderTextColor="#888"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Ionicons name="earth" size={20} color="#40D740" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={this.state.country}
-                onChangeText={(text) => this.setState({ country: text })}
-                placeholder="Country"
-                placeholderTextColor="#888"
-              />
-            </View>
+            {["street", "city", "state", "postalCode", "country"].map((field, index) => {
+              const placeholder = field
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase());
+              const iconNames = ["home", "location", "map", "code", "earth"];
+              return (
+                <View key={index} style={styles.inputContainer}>
+                  <Ionicons
+                    name={iconNames[index] as any}
+                    size={20}
+                    color="#40D740"
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={placeholder}
+                    placeholderTextColor="#888"
+                    value={this.state[field as keyof State] as string}
+                    keyboardType={field === "postalCode" ? "numeric" : "default"}
+                    onChangeText={(text) =>
+                      this.setState((prevState) => ({
+                        ...prevState,
+                        [field]: text,
+                      }))
+                    }
+                  />
+                </View>
+              );
+            })}
           </>
         ) : (
           <View style={styles.addressContainer}>
@@ -197,10 +175,20 @@ export default class Settings extends Component<{}, State> {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={this.handleYap}>
-          <Text style={styles.logoutText}>Yap</Text>
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: "#33CFFF" }]}
+          onPress={() => this.setState({ redirectToYap: true })}
+        >
+          <Text style={styles.logoutText}>Go to Yap</Text>
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: "#A733FF", marginBottom: 40 }]}
+          onPress={() => this.setState({ redirectToAct2: true })}
+        >
+          <Text style={styles.logoutText}>Go to Act2</Text>
+        </TouchableOpacity>
+      </ScrollView>
     );
   }
 }
@@ -278,11 +266,6 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     backgroundColor: "#FFAA33",
-    shadowColor: "#FFAA33",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
   changeAddressText: {
     fontSize: 16,
@@ -295,11 +278,6 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     backgroundColor: "#3385FF",
-    shadowColor: "#3385FF",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
   changePasswordText: {
     fontSize: 16,
@@ -312,11 +290,6 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     backgroundColor: "#FF3333",
-    shadowColor: "#FF3333",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
   logoutText: {
     fontSize: 16,
