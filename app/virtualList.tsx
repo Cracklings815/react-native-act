@@ -23,13 +23,14 @@ const getItem = (data: Item[], index: number): Item => data[index];
 const VL = () => {
     return (
         <VirtualizedList
-            data={DATA}
-            renderItem={({ item }) => (
-                <Text style={styles.title}>{item.title}</Text>
-            )}
-            keyExtractor={(item) => item.id}
-            getItemCount={getItemCount}
-            getItem={getItem}
+        data={DATA}
+        renderItem={({ item }) => {
+            console.log(`Rendering item: ${item.title}`);
+            return <Text style={styles.title}>{item.title}</Text>;
+        }}
+        keyExtractor={(item) => item.id}
+        getItemCount={getItemCount}
+        getItem={getItem}
         />
     );
 };

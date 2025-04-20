@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, StyleSheet, ScrollView } from 'react-native';
+import { Text, View, StyleSheet, ScrollView, FlatList} from 'react-native';
 
 const DATA = [
     { id: '1', title: 'Item 1' },
@@ -22,20 +22,34 @@ const DATA = [
 const example = () => {
     return (
 
-        // <FlatList
-        //     data={DATA}
-        //     renderItem={({ item }) => (
-        //         <Text style={styles.title}>{item.title}</Text>
-        //     )}
-        // />
+        <FlatList
+            data={DATA}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+                console.log(`Rendering item: ${item.title}`);
+                return (
+                    <Text style={styles.title}>
+                        {item.title}
+                    </Text>
+                );
+            }}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={50}
+        />
     
-        <ScrollView>
-            {DATA.map((item) => (
-                <Text key={item.id} style={styles.title}>
-                    {item.title}
-                </Text>
-            ))}
-        </ScrollView>
+        //  <ScrollView>
+        //     {DATA.map((item) => {
+        //         console.log(`Rendering item: ${item.title}`); 
+        //         return (
+        //             <Text key={item.id} style={styles.title}>
+        //                 {item.title}
+        //             </Text>
+        //         );
+        //     })}
+        // </ScrollView>
     );
 };
 

@@ -9,6 +9,7 @@ import {
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface CartItem {
   id: string;
@@ -41,7 +42,9 @@ export default function Cart() {
   // Animation setup
   const animations = useRef(cartItems.map(() => new Animated.Value(0))).current;
 
-  useEffect(() => {
+  useFocusEffect(
+  React.useCallback(() => {
+    animations.forEach((anim) => anim.setValue(0)); // Reset animations
     const anims = animations.map((anim) =>
       Animated.timing(anim, {
         toValue: 1,
@@ -50,7 +53,8 @@ export default function Cart() {
       })
     );
     Animated.stagger(150, anims).start();
-  }, [animations]);
+  }, [animations])
+);
 
   const calculateTotal = (): number => {
     return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
