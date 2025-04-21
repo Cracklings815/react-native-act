@@ -40,6 +40,7 @@ export default function RootLayout() {
         <Stack.Screen name="act2" options={{ headerShown: false }} /> */}
         <Stack.Screen name="flatlist" options={{ headerShown: true }} />
         <Stack.Screen name="virtualList" options={{ headerShown: true }} />
+        <Stack.Screen name="jest" options={{ headerShown: true }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
