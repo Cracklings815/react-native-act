@@ -81,13 +81,13 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="act"
         options={{
           title: 'Activity',
           tabBarIcon: ({ color }) => <MaterialIcons name="local-activity" size={24} color={color} />,
         }}
-      />
+      /> */}
     </Tabs>
     
   );
