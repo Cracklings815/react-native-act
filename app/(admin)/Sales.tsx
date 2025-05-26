@@ -97,7 +97,7 @@ const Sales = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState('All');
 
-    // Function to determine if a route is active
+   
     interface IsActiveRouteFn {
         (route: string): boolean;
     }
@@ -106,7 +106,7 @@ const Sales = () => {
         return pathname.includes(route);
     };
 
-    // Calculate summary statistics
+    
     const totalSales = transactions
         .filter(t => t.status === 'Completed')
         .reduce((sum, t) => sum + t.totalPrice, 0);
