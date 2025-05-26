@@ -1,56 +1,232 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons'; 
+import { 
+  View, 
+  Text, 
+  Image, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  ScrollView, 
+  StatusBar,
+  Animated,
+  Dimensions
+} from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function AddToCartScreen() {
   const params = useLocalSearchParams();
   const product = typeof params.product === 'string' ? JSON.parse(params.product) : null;
   const [quantity, setQuantity] = useState(1);
+ 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
-  if (!product) return <Text style={styles.errorText}>Product not found</Text>;
+  useEffect(() => {
+    // Entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  if (!product) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="fish-outline" size={64} color="#666" />
+        <Text style={styles.errorText}>Fish not found</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleAddToCart = () => {
-    Alert.alert("Success", `${product.name} (x${quantity}) added to cart!`);
+    // Button press animation
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Alert.alert(
+      "Added to Cart! 🎉",
+      `${product.name} (x${quantity}) has been added to your cart.`,
+      [
+        { text: "Continue Shopping", onPress: () => router.back() },
+        { text: "View Cart", onPress: () => router.push('/cart') }
+      ]
+    );
   };
+
+  const totalPrice = product.price * quantity;
 
   return (
     <View style={styles.container}>
-      {/* Back Button */}
-       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Product Details</Text>
+        
+        
+      </View>
 
-      <View style={styles.card}>
-        <Image source={product.image} style={styles.productImage} />
-        <Text style={styles.productName}>{product.name}</Text>
-        <Text style={styles.productPrice}>₱ {product.price}</Text>
-        <Text style={styles.productStock}>{product.stocks} in stock</Text>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Product Image Section */}
+        <Animated.View 
+          style={[
+            styles.imageSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }]
+            }
+          ]}
+        >
+          <View style={styles.imageContainer}>
+            <Image source={product.image} style={styles.productImage} />
+            
+            {/* Stock Badge */}
+            <View style={[
+              styles.stockBadge, 
+              { backgroundColor: product.stocks < 20 ? '#FF6B6B' : '#4ECDC4' }
+            ]}>
+              <Ionicons name="cube-outline" size={12} color="#fff" />
+              <Text style={styles.stockBadgeText}>{product.stocks}</Text>
+            </View>
+          </View>
+        </Animated.View>
 
+        {/* Product Info Section */}
+        <Animated.View 
+          style={[
+            styles.infoSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          {/* Category & Rating */}
+          <View style={styles.metaInfo}>
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryText}>{product.category || 'Fish'}</Text>
+            </View>
+            <View style={styles.ratingContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons key={star} name="star" size={14} color="#FFD700" />
+              ))}
+              <Text style={styles.ratingText}>(4.8)</Text>
+            </View>
+          </View>
+
+          {/* Product Name */}
+          <Text style={styles.productName}>{product.name}</Text>
+
+          {/* Price */}
+          <View style={styles.priceContainer}>
+            <Text style={styles.productPrice}>₱{product.price}</Text>
+            <Text style={styles.priceUnit}>per fish</Text>
+          </View>
+  
+        </Animated.View>
+      </ScrollView>
+
+      {/* Bottom Action Section */}
+      <Animated.View 
+        style={[
+          styles.bottomSection,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
+      >
         {/* Quantity Selector */}
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity 
-            onPress={() => setQuantity((prev) => Math.max(1, prev - 1))} 
-            style={styles.quantityButton}
-          >
-            <Text style={styles.quantityText}>-</Text>
-          </TouchableOpacity>
-          
-          <Text style={styles.quantityValue}>{quantity}</Text>
-          
-          <TouchableOpacity 
-            onPress={() => setQuantity((prev) => Math.min(product.stocks, prev + 1))} 
-            style={styles.quantityButton}
-          >
-            <Text style={styles.quantityText}>+</Text>
-          </TouchableOpacity>
+        <View style={styles.quantitySection}>
+          <Text style={styles.quantityLabel}>Quantity</Text>
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity 
+              onPress={() => setQuantity((prev) => Math.max(1, prev - 1))} 
+              style={styles.quantityButton}
+              disabled={quantity <= 1}
+            >
+              <Ionicons name="remove" size={20} color={quantity <= 1 ? "#666" : "#fff"} />
+            </TouchableOpacity>
+            
+            <View style={styles.quantityDisplay}>
+              <Text style={styles.quantityValue}>{quantity}</Text>
+            </View>
+            
+            <TouchableOpacity 
+              onPress={() => setQuantity((prev) => Math.min(product.stocks, prev + 1))} 
+              style={styles.quantityButton}
+              disabled={quantity >= product.stocks}
+            >
+              <Ionicons name="add" size={20} color={quantity >= product.stocks ? "#666" : "#fff"} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Add to Cart Button */}
-        <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
-          <Text style={styles.addToCartText}>🛒 Add to Cart</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Total Price */}
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalPrice}>₱{totalPrice.toLocaleString()}</Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.buyNowButton}>
+            <Ionicons name="flash" size={20} color="#fff" />
+            <Text style={styles.buyNowText}>Buy Now</Text>
+          </TouchableOpacity>
+          
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            <TouchableOpacity 
+              style={styles.addToCartButton} 
+              onPress={handleAddToCart}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="bag-add" size={20} color="#fff" />
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Animated.View>
     </View>
   );
 }
@@ -58,100 +234,274 @@ export default function AddToCartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0A0A0A',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
     justifyContent: 'center',
-    backgroundColor: '#F8F8F8',
-    padding: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    backgroundColor: '#444',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-    width: '90%',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  imageSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  imageContainer: {
+    position: 'relative',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 24,
+    padding: 20,
+    width: screenWidth - 40,
+    alignItems: 'center',
   },
   productImage: {
-    width: 180,
-    height: 180,
-    resizeMode: 'contain',
-    marginBottom: 10,
+    width: 250,
+    height: 250,
+    borderRadius: 20,
+    resizeMode: 'cover',
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  stockBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  infoSection: {
+    paddingHorizontal: 20,
+  },
+  metaInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  categoryTag: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  categoryText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingText: {
+    color: '#888',
+    fontSize: 12,
+    marginLeft: 4,
   },
   productName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-    marginBottom: 5,
+    color: '#fff',
+    marginBottom: 12,
+    lineHeight: 30,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 24,
   },
   productPrice: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#E63946',
-    marginBottom: 5,
+    color: '#FFD700',
   },
-  productStock: {
+  priceUnit: {
+    fontSize: 14,
+    color: '#888',
+    marginLeft: 8,
+  },
+  descriptionContainer: {
+    marginBottom: 24,
+  },
+  descriptionTitle: {
     fontSize: 16,
-    color: '#555',
-    marginBottom: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#888',
+    lineHeight: 20,
+  },
+  specsContainer: {
+    marginBottom: 24,
+  },
+  specsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  specsList: {
+    gap: 8,
+  },
+  specItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  specText: {
+    fontSize: 14,
+    color: '#888',
+  },
+  bottomSection: {
+    backgroundColor: '#1A1A1A',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  quantitySection: {
+    marginBottom: 20,
+  },
+  quantityLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#EFEFEF',
-    padding: 8,
-    borderRadius: 10,
+    justifyContent: 'center',
+    gap: 16,
   },
   quantityButton: {
-    backgroundColor: '#ddd',
-    padding: 12,
-    borderRadius: 10,
-    marginHorizontal: 15,
+    width: 44,
+    height: 44,
+    backgroundColor: '#4ECDC4',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  quantityText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#444',
+  quantityDisplay: {
+    backgroundColor: '#333',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: 60,
+    alignItems: 'center',
   },
   quantityValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addToCartButton: {
-    backgroundColor: '#1D3557',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  addToCartText: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#fff',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  totalPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFD700',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  buyNowButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  buyNowText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  addToCartButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4ECDC4',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0A',
+    gap: 16,
   },
   errorText: {
     fontSize: 18,
-    color: 'red',
+    color: '#666',
     textAlign: 'center',
+  },
+  backButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

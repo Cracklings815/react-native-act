@@ -303,21 +303,30 @@ export default function AdminHome() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/settings')}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            Alert.alert(
+              'Confirm Logout',
+              'Are you sure you want to logout?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Logout',
+                  style: 'destructive',
+                  onPress: () => router.replace('/login'), // Adjust path as needed
+                },
+              ],
+              { cancelable: true }
+            );
+          }}
         >
-          <Ionicons 
-            name="settings" 
-            size={24} 
-            color={isActiveRoute('settings') ? '#3F51B5' : '#757575'} 
+          <Ionicons
+            name="log-out-outline"
+            size={24}
+            color="#F44336"
           />
-          <Text style={[
-            styles.navLabel, 
-            { color: isActiveRoute('settings') ? '#3F51B5' : '#757575' }
-          ]}>
-            Settings
-          </Text>
+          <Text style={[styles.navLabel, { color: '#F44336' }]}>Logout</Text>
         </TouchableOpacity>
       </View>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
   StyleSheet,
@@ -6,128 +6,496 @@ import {
   Text,
   TouchableOpacity,
   Animated,
+  ScrollView,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const products = [
-  { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg') },
-  { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg') },
-  { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg') },
-  { id: '4', name: 'Koi Guppy', price: 90, stocks: 10, image: require('@/assets/images/koi.jpg') },
-  { id: '5', name: 'Full Gold Guppy', price: 85, stocks: 20, image: require('@/assets/images/gold.jpg') },
-  { id: '6', name: 'Half Black Blue Guppy', price: 95, stocks: 5, image: require('@/assets/images/hbb3.jpg') },
-  { id: '7', name: 'Black Ranchu Goldfish', price: 1000, stocks: 55, image: require('@/assets/images/ranchu.png') },
-  { id: '8', name: 'White Balloon Molly', price: 150, stocks: 5, image: require('@/assets/images/molly.jpg') },
-  { id: '9', name: 'Fancy Oranda Goldish', price: 1500, stocks: 45, image: require('@/assets/images/oranda.jpg') },
-  { id: '10', name: 'Butterfly Telescope Goldfish', price: 5000, stocks: 5, image: require('@/assets/images/butterfly.jpg') },
+  { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
+  { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
+  { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
+  { id: '4', name: 'Koi Guppy', price: 90, stocks: 10, image: require('@/assets/images/koi.jpg'), category: 'Guppy', featured: true },
+  { id: '5', name: 'Full Gold Guppy', price: 85, stocks: 20, image: require('@/assets/images/gold.jpg'), category: 'Guppy' },
+  { id: '6', name: 'Half Black Blue Guppy', price: 95, stocks: 5, image: require('@/assets/images/hbb3.jpg'), category: 'Guppy' },
+  { id: '7', name: 'Black Ranchu Goldfish', price: 1000, stocks: 55, image: require('@/assets/images/ranchu.png'), category: 'Goldfish', featured: true },
+  { id: '8', name: 'White Balloon Molly', price: 150, stocks: 5, image: require('@/assets/images/molly.jpg'), category: 'Molly' },
+  { id: '9', name: 'Fancy Oranda Goldfish', price: 1500, stocks: 45, image: require('@/assets/images/oranda.jpg'), category: 'Goldfish', featured: true },
+  { id: '10', name: 'Butterfly Telescope Goldfish', price: 5000, stocks: 5, image: require('@/assets/images/butterfly.jpg'), category: 'Goldfish' },
 ];
 
+const categories = ['All', 'Guppy', 'Goldfish', 'Molly'];
+
 export default function HomeScreen() {
-  // Create an Animated.Value for each product
-  const animations = useRef(products.map(() => new Animated.Value(0))).current;
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [filteredProducts, setFilteredProducts] = useState(products);
+  
+  // Animation values
+  const headerAnimation = useRef(new Animated.Value(0)).current;
+  const categoryAnimation = useRef(new Animated.Value(0)).current;
+  const productAnimations = useRef(products.map(() => new Animated.Value(0))).current;
+  const featuredAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const staggerAnimations = animations.map(anim =>
+    // Animate header
+    Animated.timing(headerAnimation, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate categories
+    Animated.timing(categoryAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 200,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate featured section
+    Animated.timing(featuredAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 400,
+      useNativeDriver: true,
+    }).start();
+
+    // Stagger product animations
+    const staggerAnimations = productAnimations.map(anim =>
       Animated.timing(anim, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       })
     );
-    Animated.stagger(100, staggerAnimations).start();
-  }, [animations]);
+    Animated.stagger(80, staggerAnimations).start();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCategory === 'All') {
+      setFilteredProducts(products);
+    } else {
+      setFilteredProducts(products.filter(product => product.category === selectedCategory));
+    }
+  }, [selectedCategory]);
+
+  const featuredProducts = products.filter(product => product.featured);
+
+  interface Product {
+    id: string;
+    name: string;
+    price: number;
+    stocks: number;
+    image: any;
+    category: string;
+    featured?: boolean;
+  }
+
+  interface ProductCardProps {
+    item: Product;
+    index: number;
+    isLarge?: boolean;
+  }
+
+  const renderProductCard = (
+    item: Product,
+    index: number,
+    isLarge: boolean = false
+  ): React.ReactElement => {
+    const opacity = productAnimations[products.findIndex((p) => p.id === item.id)];
+    const scale = opacity.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.8, 1],
+    });
+
+    return (
+      <Animated.View
+        key={item.id}
+        style={[
+          isLarge ? styles.featuredCard : styles.productCard,
+          { opacity, transform: [{ scale }] },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
+          }
+          activeOpacity={0.9}
+          style={styles.touchable}
+        >
+          {/* Stock badge */}
+          <View
+            style={[
+              styles.stockBadge,
+              { backgroundColor: item.stocks < 20 ? '#FF6B6B' : '#4ECDC4' },
+            ]}
+          >
+            <Text style={styles.stockText}>{item.stocks}</Text>
+          </View>
+
+          {/* Product image with overlay */}
+          <View style={styles.imageContainer}>
+            <Image
+              source={item.image}
+              style={isLarge ? styles.featuredImage : styles.productImage}
+            />
+            <View style={styles.imageOverlay}>
+              <Ionicons name="heart-outline" size={20} color="#fff" />
+            </View>
+          </View>
+
+          {/* Product info */}
+          <View style={styles.productInfo}>
+            <Text style={styles.productCategory}>{item.category}</Text>
+            <Text style={isLarge ? styles.featuredName : styles.productName} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.productPrice}>₱{item.price}</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() =>
+            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
+          }>
+                <Ionicons name="add" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   return (
-    <ThemedView style={styles.container}>
-      <Text style={styles.header}>Available Fish</Text>
-      <View style={styles.flatListContainer}>
-        {products.map((item, index) => {
-          const opacity = animations[index];
-          const scale = opacity.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.8, 1],
-          });
-          return (
-            <Animated.View
-              key={item.id}
-              style={[styles.productCard, { opacity, transform: [{ scale }] }]}
-            >
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <Animated.View 
+          style={[
+            styles.header,
+            {
+              opacity: headerAnimation,
+              transform: [{
+                translateY: headerAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                })
+              }]
+            }
+          ]}
+        >
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.welcomeText}>Welcome to</Text>
+              <Text style={styles.storeTitle}>DOYKONG</Text>
+            </View>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Categories */}
+        <Animated.View 
+          style={[
+            styles.categoriesContainer,
+            {
+              opacity: categoryAnimation,
+              transform: [{
+                translateX: categoryAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-50, 0],
+                })
+              }]
+            }
+          ]}
+        >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map((category) => (
               <TouchableOpacity
-                onPress={() =>
-                  router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
-                }
-                activeOpacity={0.8}
-                style={styles.touchable}
+                key={category}
+                style={[
+                  styles.categoryButton,
+                  selectedCategory === category && styles.activeCategoryButton
+                ]}
+                onPress={() => setSelectedCategory(category)}
               >
-                <Image source={item.image} style={styles.productImage} />
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>₱ {item.price}</Text>
-                <Text style={styles.productStock}>{item.stocks} in stock</Text>
+                <Text style={[
+                  styles.categoryText,
+                  selectedCategory === category && styles.activeCategoryText
+                ]}>
+                  {category}
+                </Text>
               </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
-      </View>
-    </ThemedView>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* Featured Section */}
+        <Animated.View 
+          style={[
+            styles.featuredSection,
+            {
+              opacity: featuredAnimation,
+              transform: [{
+                translateY: featuredAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                })
+              }]
+            }
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Featured Fish</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {featuredProducts.map((item, index) => renderProductCard(item, index, true))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* All Products */}
+        <View style={styles.allProductsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {selectedCategory === 'All' ? 'All Fish' : selectedCategory}
+            </Text>
+            <Text style={styles.productCount}>{filteredProducts.length} items</Text>
+          </View>
+          
+          <View style={styles.productsGrid}>
+            {filteredProducts.map((item, index) => renderProductCard(item, index))}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#0A0A0A',
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for tab bar
   },
   header: {
-    fontSize: 24,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 2,
+  },
+  storeTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center',
-    marginVertical: 10,
+    letterSpacing: 0.5,
   },
-  flatListContainer: {
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  searchPlaceholder: {
+    flex: 1,
+    color: '#666',
+    fontSize: 16,
+  },
+  categoriesContainer: {
+    paddingLeft: 20,
+    marginBottom: 24,
+  },
+  categoryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginRight: 12,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  activeCategoryButton: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  categoryText: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activeCategoryText: {
+    color: '#fff',
+  },
+  featuredSection: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  seeAllText: {
+    color: '#4ECDC4',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  productCount: {
+    color: '#888',
+    fontSize: 14,
+  },
+  allProductsSection: {
+    paddingHorizontal: 20,
+  },
+  productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingBottom: 20,
+  },
+  featuredCard: {
+    width: 220,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    marginLeft: 20,
+    marginRight: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#333',
   },
   productCard: {
     width: '48%',
-    backgroundColor: '#252525',
-    borderRadius: 12,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#333',
   },
   touchable: {
-    alignItems: 'center',
-    padding: 15,
+    position: 'relative',
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  stockText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  featuredImage: {
+    width: '100%',
+    height: 160,
+    resizeMode: 'cover',
   },
   productImage: {
-    width: 120,
+    width: '100%',
     height: 120,
-    borderRadius: 10,
-    marginBottom: 10,
     resizeMode: 'cover',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  productInfo: {
+    padding: 16,
+  },
+  productCategory: {
+    fontSize: 10,
+    color: '#4ECDC4',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  featuredName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    lineHeight: 20,
   },
   productName: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   productPrice: {
-    color: '#F39C12',
+    color: '#FFD700',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  productStock: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    marginTop: 4,
+  addButton: {
+    backgroundColor: '#4ECDC4',
+    borderRadius: 12,
+    padding: 6,
   },
 });

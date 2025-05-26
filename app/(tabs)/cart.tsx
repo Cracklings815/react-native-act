@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -37,6 +38,42 @@ export default function Cart() {
       quantity: 2,
       image: require("@/assets/images/bluedragon.jpg"),
     },
+    {
+      id: "3",
+      name: "Blue Dragon Guppy",
+      price: 50,
+      quantity: 2,
+      image: require("@/assets/images/bluedragon.jpg"),
+    },
+    {
+      id: "4",
+      name: "Blue Dragon Guppy",
+      price: 50,
+      quantity: 2,
+      image: require("@/assets/images/bluedragon.jpg"),
+    },
+    {
+      id: "5",
+      name: "Blue Dragon Guppy",
+      price: 50,
+      quantity: 2,
+      image: require("@/assets/images/bluedragon.jpg"),
+    },
+    {
+      id: "6",
+      name: "Blue Dragon Guppy",
+      price: 50,
+      quantity: 2,
+      image: require("@/assets/images/bluedragon.jpg"),
+    },
+    {
+      id: "7",
+      name: "Blue Dragon Guppy",
+      price: 50,
+      quantity: 2,
+      image: require("@/assets/images/bluedragon.jpg"),
+    },
+    
   ];
 
   // Animation setup
@@ -62,38 +99,43 @@ export default function Cart() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>My Cart</Text>
+    <Text style={styles.header}>My Cart</Text>
 
-      <FlatList
-        data={cartItems}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => {
-          const opacity = animations[index];
-          const scale = opacity.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.8, 1],
-          });
+    <FlatList
+      data={cartItems}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      renderItem={({ item, index }) => {
+        const opacity = animations[index];
+        const scale = opacity.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.8, 1],
+        });
 
-          return (
-            <Animated.View style={[styles.cartItem, { opacity, transform: [{ scale }] }]}>
-              <Image source={item.image} style={styles.itemImage} />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>₱ {item.price}</Text>
-                <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
-              </View>
-            </Animated.View>
-          );
-        }}
-      />
-
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalText}>Total: ₱ {calculateTotal()}</Text>
-        <TouchableOpacity style={styles.checkoutButton} onPress={() => router.push("/checkout")}>
-          <Text style={styles.checkoutText}>Proceed to Checkout</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        return (
+          <Animated.View style={[styles.cartItem, { opacity, transform: [{ scale }] }]}>
+            <Image source={item.image} style={styles.itemImage} />
+            <View style={styles.itemDetails}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemPrice}>₱ {item.price}</Text>
+              <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+            </View>
+          </Animated.View>
+        );
+      }}
+      ListFooterComponent={
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalText}>Total: ₱ {calculateTotal()}</Text>
+          <TouchableOpacity
+            style={styles.checkoutButton}
+            onPress={() => router.push("/checkout")}
+          >
+            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+          </TouchableOpacity>
+        </View>
+      }
+    />
+  </View>
   );
 }
 
@@ -109,6 +151,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
     textAlign: "center",
     marginBottom: 20,
+    marginTop: 40,
   },
   cartItem: {
     flexDirection: "row",
