@@ -175,19 +175,6 @@ export default class Settings extends Component<{}, State> {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: "#33CFFF" }]}
-          onPress={() => this.setState({ redirectToYap: true })}
-        >
-          <Text style={styles.logoutText}>Go to Yap</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: "#A733FF", marginBottom: 40 }]}
-          onPress={() => this.setState({ redirectToAct2: true })}
-        >
-          <Text style={styles.logoutText}>Go to Act2</Text>
-        </TouchableOpacity>
       </ScrollView>
     );
   }

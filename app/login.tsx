@@ -6,8 +6,8 @@ import { Redirect } from "expo-router";
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [redirect, setRedirect] = useState(false);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -15,22 +15,28 @@ const LoginScreen = () => {
       return;
     }
 
-    if (email === "jp" && password === "jp") {
-      Alert.alert("Success", "Login successful!");
-      setRedirect(true);
+    if (email === "paul" && password === "paul") {
+      Alert.alert("Welcome", "Logged in as Admin");
+      setRedirect("admin");
+    } else if (email === "jp" && password === "jp") {
+      Alert.alert("Welcome", "Logged in as User");
+      setRedirect("user");
     } else {
-      Alert.alert("Error", "Invalid email or password.");
+      Alert.alert("Error", "Invalid credentials.");
     }
   };
 
-  if (redirect) {
-    return <Redirect href="/main" />; 
+  if (redirect === "admin") {
+    return <Redirect href="/(admin)/AdminPanel" />;
+  }
+
+  if (redirect === "user") {
+    return <Redirect href="/main" />;
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Back</Text>
-      
 
       <View style={styles.inputContainer}>
         <Ionicons name="mail" size={20} color="#873A3A" style={styles.icon} />
@@ -38,7 +44,6 @@ const LoginScreen = () => {
           style={styles.input}
           placeholder="Email"
           placeholderTextColor="#888"
-          keyboardType="email-address"
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
@@ -91,11 +96,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
     marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#BBB",
-    marginBottom: 30,
   },
   inputContainer: {
     flexDirection: "row",
