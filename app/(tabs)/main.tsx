@@ -1,18 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  ScrollView,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import { Image, StyleSheet, View, Text, TouchableOpacity, Animated, ScrollView, Dimensions, StatusBar, } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from "../../scripts/firebase";
+import { ref, push, set, get } from 'firebase/database';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -33,13 +25,55 @@ const categories = ['All', 'Guppy', 'Goldfish', 'Molly'];
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [filteredProducts, setFilteredProducts] = useState(products);
-  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  // const [filteredProducts, setFilteredProducts] = useState(products);
+
   // Animation values
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const categoryAnimation = useRef(new Animated.Value(0)).current;
   const productAnimations = useRef(products.map(() => new Animated.Value(0))).current;
   const featuredAnimation = useRef(new Animated.Value(0)).current;
+
+  // useEffect(() => {
+  //   const fetchProducts = async () => {
+  //     try {
+  //       const snapshot = await get(ref(db, 'products')); // Adjust 'products' if your path is different
+  //       if (snapshot.exists()) {
+  //         const data = snapshot.val();
+  //         const loadedProducts = Object.keys(data).map(key => ({
+  //           id: key,
+  //           ...data[key],
+  //           image: getImageFromName(data[key].image), // This converts image name to local asset
+  //         }));
+  //         setProducts(loadedProducts);
+  //         setFilteredProducts(loadedProducts);
+  //       } else {
+  //         console.log('No products found');
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching products:', error);
+  //     }
+  //   };
+
+  //   fetchProducts();
+  // }, []);
+
+  // const getImageFromName = (name: string) => {
+  //   switch (name) {
+  //     case 'afr.jpg': return require('@/assets/images/afr.jpg');
+  //     case 'bluedragon.jpg': return require('@/assets/images/bluedragon.jpg');
+  //     case 'hbwhite.jpg': return require('@/assets/images/hbwhite.jpg');
+  //     case 'koi.jpg': return require('@/assets/images/koi.jpg');
+  //     case 'gold.jpg': return require('@/assets/images/gold.jpg');
+  //     case 'hbb3.jpg': return require('@/assets/images/hbb3.jpg');
+  //     case 'ranchu.png': return require('@/assets/images/ranchu.png');
+  //     case 'molly.jpg': return require('@/assets/images/molly.jpg');
+  //     case 'oranda.jpg': return require('@/assets/images/oranda.jpg');
+  //     case 'butterfly.jpg': return require('@/assets/images/butterfly.jpg');
+  //     default: return require('@/assets/images/Basic-Fish-Drawing.jpg'); // fallback image
+  //   }
+  // };
 
   useEffect(() => {
     // Animate header
@@ -82,7 +116,8 @@ export default function HomeScreen() {
     } else {
       setFilteredProducts(products.filter(product => product.category === selectedCategory));
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, products]);
+
 
   const featuredProducts = products.filter(product => product.featured);
 
@@ -144,7 +179,7 @@ export default function HomeScreen() {
               source={item.image}
               style={isLarge ? styles.featuredImage : styles.productImage}
             />
-            
+
           </View>
 
           {/* Product info */}
@@ -156,8 +191,8 @@ export default function HomeScreen() {
             <View style={styles.priceContainer}>
               <Text style={styles.productPrice}>₱{item.price}</Text>
               <TouchableOpacity style={styles.addButton} onPress={() =>
-            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
-          }>
+                router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
+              }>
                 <Ionicons name="add" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -170,13 +205,13 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
-      
-      <ScrollView 
+
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.header,
             {
@@ -203,7 +238,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Categories */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.categoriesContainer,
             {
@@ -239,7 +274,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Featured Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.featuredSection,
             {
@@ -259,7 +294,7 @@ export default function HomeScreen() {
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {featuredProducts.map((item, index) => renderProductCard(item, index, true))}
           </ScrollView>
@@ -273,7 +308,7 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.productCount}>{filteredProducts.length} items</Text>
           </View>
-          
+
           <View style={styles.productsGrid}>
             {filteredProducts.map((item, index) => renderProductCard(item, index))}
           </View>

@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
 import { db } from "../scripts/firebase";
-import { ref, onValue } from "firebase/database";
+import { ref, get } from "firebase/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -13,15 +14,15 @@ const LoginScreen = () => {
   const router = useRouter();
 
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter both email and password.");
       return;
     }
 
     const usersRef = ref(db, "users");
-
-    onValue(usersRef, (snapshot) => {
+    try {
+      const snapshot = await get(usersRef);
       const users = snapshot.val();
       let found = false;
 
@@ -30,19 +31,10 @@ const LoginScreen = () => {
         if (user.email === email && user.password === password) {
           found = true;
           Alert.alert("Welcome", `Logged in as ${user.role}`);
+          //Store email locally
+          await AsyncStorage.setItem("userEmail", user.email);
 
-          // Instead of setting redirect, directly navigate with email as param
-          if (user.role === "admin") {
-            router.push({
-              pathname: "/(admin)/AdminPanel",
-              params: { email: user.email },
-            });
-          } else {
-            router.push({
-              pathname: "/main",
-              params: { email: user.email },
-            });
-          }
+          router.push(user.role === "admin" ? "/(admin)/AdminPanel" : "/main");
           break;
         }
       }
@@ -50,9 +42,10 @@ const LoginScreen = () => {
       if (!found) {
         Alert.alert("Error", "Invalid email or password.");
       }
-    }, {
-      onlyOnce: true
-    });
+    } catch (error) {
+      Alert.alert("Error", "Failed to connect to database.");
+      console.error(error);
+    }
   };
 
 
