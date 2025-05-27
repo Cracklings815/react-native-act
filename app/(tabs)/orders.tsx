@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
   Animated,
+  TouchableOpacity,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -19,7 +20,7 @@ interface OrderItem {
 }
 
 export default function OrdersPage() {
-  const orders: OrderItem[] = [
+  const [orders, setOrders] = useState<OrderItem[]>([
     {
       id: "1",
       name: "African Full Red Guppy",
@@ -68,7 +69,7 @@ export default function OrdersPage() {
       image: require("@/assets/images/bluedragon.jpg"),
       status: "completed",
     },
-  ];
+  ]);
 
   const animations = useRef(orders.map(() => new Animated.Value(0))).current;
 
@@ -85,6 +86,13 @@ export default function OrdersPage() {
       Animated.stagger(100, anims).start();
     }, [])
   );
+
+  const handleOrderReceived = (id: string) => {
+    const updated = orders.map((order) =>
+      order.id === id ? { ...order, status: "completed" as "completed" } : order
+    );
+    setOrders(updated);
+  };
 
   const renderItem = (item: OrderItem, index: number) => {
     const opacity = animations[index];
@@ -105,20 +113,30 @@ export default function OrdersPage() {
         ]}
       >
         <Image source={item.image} style={styles.image} />
-        <View style={styles.info}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.price}>₱{item.price}</Text>
-          <Text style={styles.quantity}>Qty: {item.quantity}</Text>
-          <Text
-            style={[
-              styles.status,
-              item.status === "pending"
-                ? styles.statusPending
-                : styles.statusCompleted,
-            ]}
-          >
-            {item.status.toUpperCase()}
-          </Text>
+        <View style={styles.content}>
+          <View style={styles.info}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.price}>₱{item.price}</Text>
+            <Text style={styles.quantity}>Qty: {item.quantity}</Text>
+            <Text
+              style={[
+                styles.status,
+                item.status === "pending"
+                  ? styles.statusPending
+                  : styles.statusCompleted,
+              ]}
+            >
+              {item.status.toUpperCase()}
+            </Text>
+          </View>
+          {item.status === "pending" && (
+            <TouchableOpacity
+              style={styles.receivedButton}
+              onPress={() => handleOrderReceived(item.id)}
+            >
+              <Text style={styles.receivedButtonText}>Order Received</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
     );
@@ -130,7 +148,7 @@ export default function OrdersPage() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }} // extra space for bottom nav bar
+      contentContainerStyle={{ paddingBottom: 100 }}
     >
       <Text style={styles.header}>My Orders</Text>
 
@@ -179,6 +197,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 15,
   },
+  content: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   info: {
     flex: 1,
   },
@@ -214,5 +238,16 @@ const styles = StyleSheet.create({
   statusCompleted: {
     color: "#4CAF50",
     backgroundColor: "#1D2B1F",
+  },
+  receivedButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  receivedButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
