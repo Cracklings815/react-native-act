@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  StatusBar,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -74,108 +75,145 @@ export default class Settings extends Component<{}, State> {
     if (this.state.redirectToAct2) return <Redirect href="/act2" />;
 
     return (
-      <ScrollView style={styles.container}>
-        <Text style={styles.header}>Settings</Text>
-
-        <TouchableOpacity onPress={this.pickImage} style={styles.profilePicContainer}>
-          <Image
-            source={
-              this.state.profilePic
-                ? { uri: this.state.profilePic }
-                : require("@/assets/images/2x2.png")
-            }
-            style={styles.profilePic}
-          />
-          <View style={styles.editIcon}>
-            <Ionicons name="camera" size={20} color="#FFF" />
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.inputContainer}>
-          <Ionicons name="person" size={20} color="#40D740" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            value={this.state.username}
-            placeholder="Username"
-            placeholderTextColor="#888"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail" size={20} color="#40D740" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            value={this.state.email}
-            placeholder="Email"
-            placeholderTextColor="#888"
-            keyboardType="email-address"
-          />
-        </View>
-
-        <Text style={styles.sectionHeader}>Shipping Address</Text>
-
-        {this.state.editingAddress ? (
-          <>
-            {["street", "city", "state", "postalCode", "country"].map((field, index) => {
-              const placeholder = field
-                .replace(/([A-Z])/g, " $1")
-                .replace(/^./, (str) => str.toUpperCase());
-              const iconNames = ["home", "location", "map", "code", "earth"];
-              return (
-                <View key={index} style={styles.inputContainer}>
-                  <Ionicons
-                    name={iconNames[index] as any}
-                    size={20}
-                    color="#40D740"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={placeholder}
-                    placeholderTextColor="#888"
-                    value={this.state[field as keyof State] as string}
-                    keyboardType={field === "postalCode" ? "numeric" : "default"}
-                    onChangeText={(text) =>
-                      this.setState((prevState) => ({
-                        ...prevState,
-                        [field]: text,
-                      }))
-                    }
-                  />
-                </View>
-              );
-            })}
-          </>
-        ) : (
-          <View style={styles.addressContainer}>
-            <Text style={styles.addressText}>
-              {this.state.street ? `${this.state.street}, ` : ""}
-              {this.state.city ? `${this.state.city}, ` : ""}
-              {this.state.state ? `${this.state.state}, ` : ""}
-              {this.state.postalCode ? `${this.state.postalCode}, ` : ""}
-              {this.state.country ? `${this.state.country}` : "Manaoag, Pangasinan"}
-            </Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.changeAddressButton}
-          onPress={() => this.setState((prev) => ({ editingAddress: !prev.editingAddress }))}
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          <Text style={styles.changeAddressText}>
-            {this.state.editingAddress ? "Save Address" : "Change Address"}
-          </Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.changePasswordButton} onPress={this.handleChangePassword}>
-          <Text style={styles.changePasswordText}>Change Password</Text>
-        </TouchableOpacity>
+          
 
-        <TouchableOpacity style={styles.logoutButton} onPress={this.handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+          {/* Profile Section */}
+          <View style={styles.profileSection}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Settings</Text>
+            </View>
+            <TouchableOpacity onPress={this.pickImage} style={styles.profileContainer}>
+              <Image
+                source={
+                  this.state.profilePic
+                    ? { uri: this.state.profilePic }
+                    : require("@/assets/images/2x2.png")
+                }
+                style={styles.profileImage}
+              />
+              <View style={styles.editBadge}>
+                <Ionicons name="camera-outline" size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <Text style={styles.profileName}>{this.state.username}</Text>
+            <Text style={styles.profileEmail}>{this.state.email}</Text>
+          </View>
 
-      </ScrollView>
+          {/* Personal Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Username</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={this.state.username}
+                  placeholder="Enter username"
+                  placeholderTextColor="#A0A0A0"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={this.state.email}
+                  placeholder="Enter email"
+                  placeholderTextColor="#A0A0A0"
+                  keyboardType="email-address"
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Address Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Shipping Address</Text>
+              <TouchableOpacity
+                onPress={() => this.setState(prev => ({ editingAddress: !prev.editingAddress }))}
+                style={styles.editButton}
+              >
+                <Ionicons 
+                  name={this.state.editingAddress ? "checkmark" : "create-outline"} 
+                  size={18} 
+                  color="#007AFF" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {this.state.editingAddress ? (
+              <View>
+                {[
+                  { field: "street", label: "Street Address", icon: "home-outline" },
+                  { field: "city", label: "City", icon: "location-outline" },
+                  { field: "state", label: "State", icon: "map-outline" },
+                  { field: "postalCode", label: "Postal Code", icon: "code-outline" },
+                  { field: "country", label: "Country", icon: "earth-outline" }
+                ].map(({ field, label }, index) => (
+                  <View key={index} style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>{label}</Text>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={`Enter ${label.toLowerCase()}`}
+                        placeholderTextColor="#A0A0A0"
+                        value={this.state[field as keyof State] as string}
+                        keyboardType={field === "postalCode" ? "numeric" : "default"}
+                        onChangeText={(text) =>
+                          this.setState(prevState => ({
+                            ...prevState,
+                            [field]: text,
+                          }))
+                        }
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.addressDisplay}>
+                <Text style={styles.addressText}>
+                  {[this.state.street, this.state.city, this.state.state, this.state.postalCode, this.state.country]
+                    .filter(Boolean)
+                    .join(", ") || "Manaoag, Pangasinan"}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Actions Section */}
+          <View style={styles.section}>
+            <TouchableOpacity style={styles.actionButton} onPress={this.handleChangePassword}>
+              <View style={styles.actionContent}>
+                <Ionicons name="lock-closed-outline" size={20} color="#007AFF" />
+                <Text style={styles.actionText}>Change Password</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#C0C0C0" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={this.handleLogout}>
+              <View style={styles.actionContent}>
+                <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+                <Text style={[styles.actionText, styles.logoutText]}>Logout</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#C0C0C0" />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 }
@@ -183,104 +221,145 @@ export default class Settings extends Component<{}, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#121212",
+    backgroundColor: "#000000",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#FFF",
-    marginBottom: 20,
-    textAlign: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    alignItems: "flex-start",
+    width: "100%",  
   },
-  profilePicContainer: {
-    alignSelf: "center",
-    marginBottom: 20,
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: -0.5,
+    textAlign: "left",  
+    width: "100%",  
+  },
+  profileSection: {
+    backgroundColor: "#1C1C1E",
+    paddingVertical: 32,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  profileContainer: {
     position: "relative",
+    marginBottom: 16,
   },
-  profilePic: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderColor: "#40D740",
-    borderWidth: 2,
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#F0F0F0",
   },
-  editIcon: {
+  editBadge: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#40D740",
-    borderRadius: 15,
-    padding: 5,
-  },
-  inputContainer: {
-    flexDirection: "row",
+    backgroundColor: "#007AFF",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1E1E1E",
-    borderRadius: 8,
-    marginBottom: 10,
-    paddingHorizontal: 10,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
   },
-  inputIcon: {
-    marginRight: 10,
+  profileName: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
-  input: {
-    flex: 1,
-    color: "#FFF",
-    paddingVertical: 12,
+  profileEmail: {
     fontSize: 16,
+    color: "#8E8E93",
+  },
+  section: {
+    backgroundColor: "#1C1C1E",
+    marginBottom: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   sectionHeader: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#FFF",
-    marginTop: 20,
-    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  addressContainer: {
-    backgroundColor: "#1E1E1E",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  editButton: {
+    padding: 4,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#8E8E93",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  inputContainer: {
+    backgroundColor: "#2C2C2E",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#3A3A3C",
+  },
+  input: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: "#FFFFFF",
+  },
+  addressDisplay: {
+    backgroundColor: "#2C2C2E",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#3A3A3C",
   },
   addressText: {
     fontSize: 16,
-    color: "#FFF",
+    color: "#FFFFFF",
+    lineHeight: 22,
   },
-  changeAddressButton: {
-    marginTop: 10,
+  actionButton: {
+    flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: "#FFAA33",
-  },
-  changeAddressText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  changePasswordButton: {
-    marginTop: 10,
-    alignItems: "center",
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: "#3385FF",
-  },
-  changePasswordText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFF",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#3A3A3C",
   },
   logoutButton: {
-    marginTop: 20,
+    borderBottomWidth: 0,
+    marginTop: 8,
+  },
+  actionContent: {
+    flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: "#FF3333",
+  },
+  actionText: {
+    fontSize: 16,
+    color: "#007AFF",
+    marginLeft: 12,
+    fontWeight: "500",
   },
   logoutText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFF",
+    color: "#FF3B30",
   },
 });

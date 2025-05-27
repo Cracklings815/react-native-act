@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
+
+
 
 
 
@@ -16,6 +18,8 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -96,7 +100,7 @@ const LoginScreen = () => {
 
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() => Alert.alert("Sign Up", "Redirecting to sign-up page.")}>
+        <TouchableOpacity onPress={() => router.push("/signup")}>
           <Text style={styles.signupLink}> Sign Up</Text>
         </TouchableOpacity>
       </View>
