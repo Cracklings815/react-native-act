@@ -144,9 +144,7 @@ export default function HomeScreen() {
               source={item.image}
               style={isLarge ? styles.featuredImage : styles.productImage}
             />
-            <View style={styles.imageOverlay}>
-              <Ionicons name="heart-outline" size={20} color="#fff" />
-            </View>
+            
           </View>
 
           {/* Product info */}

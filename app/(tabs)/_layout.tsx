@@ -120,6 +120,20 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color, focused }) => (
+            <Feather 
+              name="box" 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+
       {/* Settings */}
       <Tabs.Screen
         name="settings"
