@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
+import { db } from "../scripts/firebase";
+import { ref, onValue } from "firebase/database";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -15,15 +17,28 @@ const LoginScreen = () => {
       return;
     }
 
-    if (email === "paul" && password === "paul") {
-      Alert.alert("Welcome", "Logged in as Admin");
-      setRedirect("admin");
-    } else if (email === "jp" && password === "jp") {
-      Alert.alert("Welcome", "Logged in as User");
-      setRedirect("user");
-    } else {
-      Alert.alert("Error", "Invalid credentials.");
-    }
+    const usersRef = ref(db, "users");
+
+    onValue(usersRef, (snapshot) => {
+      const users = snapshot.val();
+      let found = false;
+
+      for (const userId in users) {
+        const user = users[userId];
+        if (user.email === email && user.password === password) {
+          found = true;
+          Alert.alert("Welcome", `Logged in as ${user.role}`);
+          setRedirect(user.role === "admin" ? "admin" : "user");
+          break;
+        }
+      }
+
+      if (!found) {
+        Alert.alert("Error", "Invalid email or password.");
+      }
+    }, {
+      onlyOnce: true
+    });
   };
 
   if (redirect === "admin") {
