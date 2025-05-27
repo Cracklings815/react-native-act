@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
+
+
+
+
+
+
 import { db } from "../scripts/firebase";
 import { ref, onValue } from "firebase/database";
 
