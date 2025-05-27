@@ -2,21 +2,13 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
-
-
-
-
-
-
-
-
 import { db } from "../scripts/firebase";
 import { ref, onValue } from "firebase/database";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
+  // const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
@@ -38,7 +30,19 @@ const LoginScreen = () => {
         if (user.email === email && user.password === password) {
           found = true;
           Alert.alert("Welcome", `Logged in as ${user.role}`);
-          setRedirect(user.role === "admin" ? "admin" : "user");
+
+          // Instead of setting redirect, directly navigate with email as param
+          if (user.role === "admin") {
+            router.push({
+              pathname: "/(admin)/AdminPanel",
+              params: { email: user.email },
+            });
+          } else {
+            router.push({
+              pathname: "/main",
+              params: { email: user.email },
+            });
+          }
           break;
         }
       }
@@ -51,13 +55,6 @@ const LoginScreen = () => {
     });
   };
 
-  if (redirect === "admin") {
-    return <Redirect href="/(admin)/AdminPanel" />;
-  }
-
-  if (redirect === "user") {
-    return <Redirect href="/main" />;
-  }
 
   return (
     <View style={styles.container}>
@@ -100,7 +97,7 @@ const LoginScreen = () => {
 
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() => router.push("/signup")}>
+        <TouchableOpacity onPress={() => router.push("../signup")}>
           <Text style={styles.signupLink}> Sign Up</Text>
         </TouchableOpacity>
       </View>

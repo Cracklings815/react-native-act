@@ -1,16 +1,9 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-} from "react-native";
+import {View,Text,TextInput,TouchableOpacity,StyleSheet,KeyboardAvoidingView,Platform,ScrollView,Alert,} from "react-native";
 import { useRouter } from "expo-router";
+import { db } from "../scripts/firebase";
+import { ref, push } from "firebase/database";
+
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -23,18 +16,34 @@ export default function SignUp() {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
-    // Add sign up logic here (e.g. API call)
 
-    Alert.alert("Success", "Account created!", [
-      {
-        text: "OK",
-        onPress: () => router.push("/login"),  // Navigate to login page
-      },
-    ]);
+    const usersRef = ref(db, "users");
+
+    // Create a new user object
+    const newUser = {
+      email,
+      password,
+      role: "user",
+    };
+
+    // Push the new user to the database
+    push(usersRef, newUser)
+      .then(() => {
+        Alert.alert("Success", "Account created!", [
+          {
+            text: "OK",
+            onPress: () => router.push("/login"),
+          },
+        ]);
+      })
+      .catch((error) => {
+        Alert.alert("Error", "Failed to create account: " + error.message);
+      });
   };
 
   return (
