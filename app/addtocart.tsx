@@ -27,6 +27,8 @@ export default function AddToCartScreen() {
   const [currentStock, setCurrentStock] = useState(product?.stocks || 0);
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [productImage, setProductImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -57,9 +59,9 @@ export default function AddToCartScreen() {
       }),
     ]).start();
 
-    // Fetch latest stock from Firebase
+    // Fetch product data including image and stock from Firebase
     if (product?.id) {
-      fetchLatestStock();
+      fetchProductData();
     }
   }, []);
 
@@ -77,6 +79,40 @@ export default function AddToCartScreen() {
       console.error('Error getting user email:', error);
       Alert.alert('Error', 'Please log in again');
       router.push('/login');
+    }
+  };
+
+  const fetchProductData = async () => {
+    try {
+      console.log('Fetching product data for:', product.id);
+      const productRef = ref(db, `products/${product.id}`);
+      const snapshot = await get(productRef);
+      
+      if (snapshot.exists()) {
+        const productData = snapshot.val();
+        console.log('Product data from Firebase:', productData);
+        
+        // Update stock
+        if (productData.stock !== undefined) {
+          setCurrentStock(productData.stock);
+          // Reset quantity if it exceeds available stock
+          if (quantity > productData.stock) {
+            setQuantity(Math.min(quantity, productData.stock));
+          }
+        }
+        
+        // Set product image
+        if (productData.image) {
+          setProductImage(productData.image);
+          console.log('Product image URL:', productData.image);
+        }
+      } else {
+        console.log('No product data found for:', product.id);
+      }
+    } catch (error) {
+      console.error('Error fetching product data:', error);
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -180,13 +216,13 @@ export default function AddToCartScreen() {
         return;
       }
 
-      // Prepare cart item data
+      // Prepare cart item data with Firebase image URL
       const cartItem = {
         productId: product.id,
         name: product.name,
         price: product.price,
         quantity: quantity,
-        image: product.image, // This should be the image filename string
+        image: productImage || product.image, // Use Firebase image URL
         category: product.category || 'Fish',
         totalPrice: product.price * quantity,
         addedAt: Date.now(),
@@ -297,7 +333,26 @@ export default function AddToCartScreen() {
           ]}
         >
           <View style={styles.imageContainer}>
-            <Image source={product.image} style={styles.productImage} />
+            {imageLoading ? (
+              <View style={styles.imageLoadingContainer}>
+                <ActivityIndicator size="large" color="#4ECDC4" />
+                <Text style={styles.loadingText}>Loading image...</Text>
+              </View>
+            ) : productImage ? (
+              <Image 
+                source={{ uri: productImage }} 
+                style={styles.productImage}
+                onError={(error) => {
+                  console.error('Image loading error:', error);
+                  setProductImage(null);
+                }}
+              />
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <Ionicons name="fish-outline" size={100} color="#666" />
+                <Text style={styles.placeholderText}>No image available</Text>
+              </View>
+            )}
 
             {/* Stock Badge */}
             <View style={[
@@ -446,7 +501,6 @@ export default function AddToCartScreen() {
   );
 }
 
-// ... (styles remain the same as before)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -491,12 +545,35 @@ const styles = StyleSheet.create({
     padding: 20,
     width: screenWidth - 40,
     alignItems: 'center',
+    minHeight: 290, // Ensure consistent height
   },
   productImage: {
     width: 250,
     height: 250,
     borderRadius: 20,
     resizeMode: 'cover',
+  },
+  imageLoadingContainer: {
+    width: 250,
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    color: '#888',
+    fontSize: 14,
+  },
+  placeholderContainer: {
+    width: 250,
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  placeholderText: {
+    color: '#666',
+    fontSize: 14,
   },
   stockBadge: {
     position: 'absolute',

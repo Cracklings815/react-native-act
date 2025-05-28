@@ -15,7 +15,7 @@ interface Product {
   name: string;
   price: number;
   stocks: number;
-  image: any;
+  image: string;
   category: string;
   featured?: boolean;
 }
@@ -25,29 +25,46 @@ export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   // Animation values
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const categoryAnimation = useRef(new Animated.Value(0)).current;
   const featuredAnimation = useRef(new Animated.Value(0)).current;
 
-  const getImageFromName = (name: string) => {
-    console.log('Getting image for:', name); // Debug log
-    switch (name) {
-      case 'afr.jpg': return require('@/assets/images/afr.jpg');
-      case 'bluedragon.jpg': return require('@/assets/images/bluedragon.jpg');
-      case 'hbwhite.jpg': return require('@/assets/images/hbwhite.jpg');
-      case 'koi.jpg': return require('@/assets/images/koi.jpg');
-      case 'gold.jpg': return require('@/assets/images/gold.jpg');
-      case 'hbb3.jpg': return require('@/assets/images/hbb3.jpg');
-      case 'ranchu.png': return require('@/assets/images/ranchu.png');
-      case 'molly.jpg': return require('@/assets/images/molly.jpg');
-      case 'oranda.jpg': return require('@/assets/images/oranda.jpg');
-      case 'butterfly.jpg': return require('@/assets/images/butterfly.jpg');
-      default:
-        console.log('Using fallback image for:', name);
-        return require('@/assets/images/Basic-Fish-Drawing.jpg');
+  // Fallback image for when database image fails to load
+  const fallbackImage = require('@/assets/images/Basic-Fish-Drawing.jpg');
+
+  // Helper function to validate URL
+  const isValidUrl = (string: string): boolean => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
     }
+  };
+
+  // Helper function to get image source
+  const getImageSource = (item: Product) => {
+    // If there's an error for this product, use fallback
+    if (imageErrors.has(item.id)) {
+      return fallbackImage;
+    }
+    
+    // If image exists and is a valid URL, use it
+    if (item.image && isValidUrl(item.image)) {
+      return { uri: item.image };
+    }
+    
+    // Otherwise use fallback
+    return fallbackImage;
+  };
+
+  // Handle image load errors
+  const handleImageError = (productId: string, productName: string) => {
+    console.log(`Image load error for ${productName} (ID: ${productId})`);
+    setImageErrors(prev => new Set(prev).add(productId));
   };
 
   useEffect(() => {
@@ -59,19 +76,19 @@ export default function HomeScreen() {
         const snapshot = await get(ref(db, 'products'));
         if (snapshot.exists()) {
           const data = snapshot.val();
-          console.log('Raw Firebase data:', data); // Debug log
+          console.log('Raw Firebase data:', data);
 
           const loadedProducts = Object.keys(data).map(key => {
             const product = {
               id: key,
               ...data[key],
-              image: getImageFromName(data[key].image),
+              image: data[key].image || '', // Ensure image is always a string
             };
-            console.log('Processed product:', product); // Debug log
+            console.log('Processed product:', product);
             return product;
           });
 
-          console.log('All loaded products:', loadedProducts); // Debug log
+          console.log('All loaded products:', loadedProducts);
 
           setProducts(loadedProducts);
           setFilteredProducts(loadedProducts);
@@ -90,9 +107,9 @@ export default function HomeScreen() {
         console.error('Error fetching products:', error);
         // Fallback to hardcoded products on error
         const fallbackProducts = [
-          { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
-          { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
-          { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
+          { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: '', category: 'Guppy', featured: true },
+          { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: '', category: 'Guppy' },
+          { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: '', category: 'Guppy' },
         ];
         setProducts(fallbackProducts);
         setFilteredProducts(fallbackProducts);
@@ -139,7 +156,7 @@ export default function HomeScreen() {
     item: Product,
     isLarge: boolean = false
   ): React.ReactElement => {
-    console.log('Rendering product card for:', item.name); // Debug log
+    console.log('Rendering product card for:', item.name);
 
     return (
       <View
@@ -166,13 +183,14 @@ export default function HomeScreen() {
             <Text style={styles.stockText}>{item.stocks}</Text>
           </View>
 
-          {/* Product image */}
+          {/* Product image with improved error handling */}
           <View style={styles.imageContainer}>
             <Image
-              source={item.image}
+              source={getImageSource(item)}
               style={isLarge ? styles.featuredImage : styles.productImage}
-              onError={(error) => console.log('Image load error:', error)}
+              onError={() => handleImageError(item.id, item.name)}
               onLoad={() => console.log('Image loaded successfully for:', item.name)}
+              resizeMode="cover"
             />
           </View>
 
@@ -282,6 +300,11 @@ export default function HomeScreen() {
           <Text style={{ color: '#fff', marginBottom: 10 }}>
             Debug Info: {products.length} products loaded, {filteredProducts.length} filtered
           </Text>
+          {imageErrors.size > 0 && (
+            <Text style={{ color: '#FF6B6B', fontSize: 12 }}>
+              Image errors: {imageErrors.size} products using fallback images
+            </Text>
+          )}
         </View>
 
         {/* Featured Section */}

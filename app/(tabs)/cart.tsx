@@ -38,9 +38,36 @@ export default function Cart() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   // Animation setup
   const animations = useRef<{ [key: string]: Animated.Value }>({}).current;
+
+  const fallbackImage = require('@/assets/images/Basic-Fish-Drawing.jpg');
+
+    const isValidUrl = (string: string): boolean => {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+
+    const getImageSource = (item: CartItem) => {
+      if (imageErrors.has(item.id)) {
+        return fallbackImage;
+      }
+      if (item.image && isValidUrl(item.image)) {
+        return { uri: item.image };
+      }
+      return fallbackImage;
+    };
+
+    const handleImageError = (productId: string, productName: string) => {
+      console.log(`Image load error for ${productName} (ID: ${productId})`);
+      setImageErrors(prev => new Set(prev).add(productId));
+    };
 
   // Get user email from AsyncStorage
   const getUserEmail = async () => {
@@ -66,22 +93,6 @@ export default function Cart() {
     }
   };
 
-  const getImageFromName = (imageName: string) => {
-    switch (imageName) {
-      case 'afr.jpg': return require('@/assets/images/afr.jpg');
-      case 'bluedragon.jpg': return require('@/assets/images/bluedragon.jpg');
-      case 'hbwhite.jpg': return require('@/assets/images/hbwhite.jpg');
-      case 'koi.jpg': return require('@/assets/images/koi.jpg');
-      case 'gold.jpg': return require('@/assets/images/gold.jpg');
-      case 'hbb3.jpg': return require('@/assets/images/hbb3.jpg');
-      case 'ranchu.png': return require('@/assets/images/ranchu.png');
-      case 'molly.jpg': return require('@/assets/images/molly.jpg');
-      case 'oranda.jpg': return require('@/assets/images/oranda.jpg');
-      case 'butterfly.jpg': return require('@/assets/images/butterfly.jpg');
-      default: return require('@/assets/images/Basic-Fish-Drawing.jpg');
-    }
-  };
-
   const fetchCartItems = async () => {
     try {
       setLoading(true);
@@ -102,9 +113,11 @@ export default function Cart() {
         const items = Object.keys(data).map(key => ({
           id: key,
           ...data[key],
-          image: getImageFromName(data[key].image),
+          // Keep the image as is from the database (should be URL string)
+          image: data[key].image || '',
         }));
 
+        console.log('Cart items loaded:', items);
         setCartItems(items);
 
         // Create animations for new items
@@ -162,7 +175,6 @@ export default function Cart() {
       Animated.parallel(animationPromises).start();
     }
   }, [cartItems]);
-
 
   const toggleSelectItem = (itemId: string) => {
     const newSelectedItems = new Set(selectedItems);
@@ -332,7 +344,7 @@ Order Total: ₱${totalAmount}`,
               setSelectedItems(new Set());
               setSelectAll(false);
               fetchCartItems();
-              router.push('/');
+              router.push('/main');
             }
           }
         ]
@@ -408,6 +420,15 @@ Order Total: ₱${totalAmount}`,
         </View>
       </View>
 
+      {/* Debug Info */}
+      {imageErrors.size > 0 && (
+        <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
+          <Text style={{ color: '#FF6B6B', fontSize: 12 }}>
+            Image errors: {imageErrors.size} items using fallback images
+          </Text>
+        </View>
+      )}
+
       <FlatList
         data={cartItems}
         keyExtractor={(item) => item.id}
@@ -437,7 +458,13 @@ Order Total: ₱${totalAmount}`,
                 />
               </TouchableOpacity>
 
-              <Image source={item.image} style={styles.itemImage} />
+              <Image
+                source={getImageSource(item)}
+                style={styles.cartImage}
+                onError={() => handleImageError(item.id, item.name)}
+                onLoad={() => console.log('Cart image loaded successfully for:', item.name)}
+                resizeMode="cover"
+              />
 
               <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
@@ -553,6 +580,12 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     marginRight: 12,
+  },
+  cartImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+    marginRight: 15,
   },
   itemImage: {
     width: 70,

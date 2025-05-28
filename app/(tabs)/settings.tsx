@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SettingsScreen = () => {
   const [email, setEmail] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
-  const [username, setUsername] = useState("");
+
   const [userEmail, setUserEmail] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
@@ -48,7 +48,7 @@ const SettingsScreen = () => {
         for (const userId in users) {
           const user = users[userId];
           if (user.email === email) {
-            setUsername(user.username || "");
+   
             setUserEmail(user.email || "");
             setStreet(user.street || "");
             setCity(user.city || "");
@@ -138,14 +138,13 @@ const SettingsScreen = () => {
               <Ionicons name="camera-outline" size={16} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.profileName}>{username}</Text>
+         
           <Text style={styles.profileEmail}>{userEmail}</Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
-          <Text style={styles.inputLabel}>Username</Text>
-          <TextInput style={styles.input} value={username} editable={false} />
+         
 
           <Text style={styles.inputLabel}>Email</Text>
           <TextInput style={styles.input} value={userEmail} editable={false} />
