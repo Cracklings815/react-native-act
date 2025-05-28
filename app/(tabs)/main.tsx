@@ -8,106 +8,100 @@ import { ref, push, set, get } from 'firebase/database';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const products = [
-  { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
-  { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
-  { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
-  { id: '4', name: 'Koi Guppy', price: 90, stocks: 10, image: require('@/assets/images/koi.jpg'), category: 'Guppy', featured: true },
-  { id: '5', name: 'Full Gold Guppy', price: 85, stocks: 20, image: require('@/assets/images/gold.jpg'), category: 'Guppy' },
-  { id: '6', name: 'Half Black Blue Guppy', price: 95, stocks: 5, image: require('@/assets/images/hbb3.jpg'), category: 'Guppy' },
-  { id: '7', name: 'Black Ranchu Goldfish', price: 1000, stocks: 55, image: require('@/assets/images/ranchu.png'), category: 'Goldfish', featured: true },
-  { id: '8', name: 'White Balloon Molly', price: 150, stocks: 5, image: require('@/assets/images/molly.jpg'), category: 'Molly' },
-  { id: '9', name: 'Fancy Oranda Goldfish', price: 1500, stocks: 45, image: require('@/assets/images/oranda.jpg'), category: 'Goldfish', featured: true },
-  { id: '10', name: 'Butterfly Telescope Goldfish', price: 5000, stocks: 5, image: require('@/assets/images/butterfly.jpg'), category: 'Goldfish' },
-];
-
 const categories = ['All', 'Guppy', 'Goldfish', 'Molly'];
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stocks: number;
+  image: any;
+  category: string;
+  featured?: boolean;
+}
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  // const [filteredProducts, setFilteredProducts] = useState(products);
+  const [loading, setLoading] = useState(true);
 
   // Animation values
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const categoryAnimation = useRef(new Animated.Value(0)).current;
-  const productAnimations = useRef(products.map(() => new Animated.Value(0))).current;
   const featuredAnimation = useRef(new Animated.Value(0)).current;
 
-  // useEffect(() => {
-  //   const fetchProducts = async () => {
-  //     try {
-  //       const snapshot = await get(ref(db, 'products')); // Adjust 'products' if your path is different
-  //       if (snapshot.exists()) {
-  //         const data = snapshot.val();
-  //         const loadedProducts = Object.keys(data).map(key => ({
-  //           id: key,
-  //           ...data[key],
-  //           image: getImageFromName(data[key].image), // This converts image name to local asset
-  //         }));
-  //         setProducts(loadedProducts);
-  //         setFilteredProducts(loadedProducts);
-  //       } else {
-  //         console.log('No products found');
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching products:', error);
-  //     }
-  //   };
-
-  //   fetchProducts();
-  // }, []);
-
-  // const getImageFromName = (name: string) => {
-  //   switch (name) {
-  //     case 'afr.jpg': return require('@/assets/images/afr.jpg');
-  //     case 'bluedragon.jpg': return require('@/assets/images/bluedragon.jpg');
-  //     case 'hbwhite.jpg': return require('@/assets/images/hbwhite.jpg');
-  //     case 'koi.jpg': return require('@/assets/images/koi.jpg');
-  //     case 'gold.jpg': return require('@/assets/images/gold.jpg');
-  //     case 'hbb3.jpg': return require('@/assets/images/hbb3.jpg');
-  //     case 'ranchu.png': return require('@/assets/images/ranchu.png');
-  //     case 'molly.jpg': return require('@/assets/images/molly.jpg');
-  //     case 'oranda.jpg': return require('@/assets/images/oranda.jpg');
-  //     case 'butterfly.jpg': return require('@/assets/images/butterfly.jpg');
-  //     default: return require('@/assets/images/Basic-Fish-Drawing.jpg'); // fallback image
-  //   }
-  // };
+  const getImageFromName = (name: string) => {
+    console.log('Getting image for:', name); // Debug log
+    switch (name) {
+      case 'afr.jpg': return require('@/assets/images/afr.jpg');
+      case 'bluedragon.jpg': return require('@/assets/images/bluedragon.jpg');
+      case 'hbwhite.jpg': return require('@/assets/images/hbwhite.jpg');
+      case 'koi.jpg': return require('@/assets/images/koi.jpg');
+      case 'gold.jpg': return require('@/assets/images/gold.jpg');
+      case 'hbb3.jpg': return require('@/assets/images/hbb3.jpg');
+      case 'ranchu.png': return require('@/assets/images/ranchu.png');
+      case 'molly.jpg': return require('@/assets/images/molly.jpg');
+      case 'oranda.jpg': return require('@/assets/images/oranda.jpg');
+      case 'butterfly.jpg': return require('@/assets/images/butterfly.jpg');
+      default:
+        console.log('Using fallback image for:', name);
+        return require('@/assets/images/Basic-Fish-Drawing.jpg');
+    }
+  };
 
   useEffect(() => {
-    // Animate header
-    Animated.timing(headerAnimation, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching products from Firebase...');
 
-    // Animate categories
-    Animated.timing(categoryAnimation, {
-      toValue: 1,
-      duration: 600,
-      delay: 200,
-      useNativeDriver: true,
-    }).start();
+        const snapshot = await get(ref(db, 'products'));
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          console.log('Raw Firebase data:', data); // Debug log
 
-    // Animate featured section
-    Animated.timing(featuredAnimation, {
-      toValue: 1,
-      duration: 600,
-      delay: 400,
-      useNativeDriver: true,
-    }).start();
+          const loadedProducts = Object.keys(data).map(key => {
+            const product = {
+              id: key,
+              ...data[key],
+              image: getImageFromName(data[key].image),
+            };
+            console.log('Processed product:', product); // Debug log
+            return product;
+          });
 
-    // Stagger product animations
-    const staggerAnimations = productAnimations.map(anim =>
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      })
-    );
-    Animated.stagger(80, staggerAnimations).start();
+          console.log('All loaded products:', loadedProducts); // Debug log
+
+          setProducts(loadedProducts);
+          setFilteredProducts(loadedProducts);
+        } else {
+          console.log('No products found in Firebase');
+          // Fallback to hardcoded products for testing
+          const fallbackProducts = [
+            { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
+            { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
+            { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
+          ];
+          setProducts(fallbackProducts);
+          setFilteredProducts(fallbackProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        // Fallback to hardcoded products on error
+        const fallbackProducts = [
+          { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
+          { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
+          { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
+        ];
+        setProducts(fallbackProducts);
+        setFilteredProducts(fallbackProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   useEffect(() => {
@@ -118,48 +112,47 @@ export default function HomeScreen() {
     }
   }, [selectedCategory, products]);
 
+  useEffect(() => {
+    // Start animations when component mounts
+    Animated.timing(headerAnimation, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
 
-  const featuredProducts = products.filter(product => product.featured);
+    Animated.timing(categoryAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 200,
+      useNativeDriver: true,
+    }).start();
 
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    stocks: number;
-    image: any;
-    category: string;
-    featured?: boolean;
-  }
-
-  interface ProductCardProps {
-    item: Product;
-    index: number;
-    isLarge?: boolean;
-  }
+    Animated.timing(featuredAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 400,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const renderProductCard = (
     item: Product,
-    index: number,
     isLarge: boolean = false
   ): React.ReactElement => {
-    const opacity = productAnimations[products.findIndex((p) => p.id === item.id)];
-    const scale = opacity.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-    });
+    console.log('Rendering product card for:', item.name); // Debug log
 
     return (
-      <Animated.View
+      <View
         key={item.id}
         style={[
           isLarge ? styles.featuredCard : styles.productCard,
-          { opacity, transform: [{ scale }] },
         ]}
       >
         <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
-          }
+          onPress={() => {
+            console.log('Product clicked:', item.name);
+            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } });
+          }}
           activeOpacity={0.9}
           style={styles.touchable}
         >
@@ -173,13 +166,14 @@ export default function HomeScreen() {
             <Text style={styles.stockText}>{item.stocks}</Text>
           </View>
 
-          {/* Product image with overlay */}
+          {/* Product image */}
           <View style={styles.imageContainer}>
             <Image
               source={item.image}
               style={isLarge ? styles.featuredImage : styles.productImage}
+              onError={(error) => console.log('Image load error:', error)}
+              onLoad={() => console.log('Image loaded successfully for:', item.name)}
             />
-
           </View>
 
           {/* Product info */}
@@ -198,9 +192,19 @@ export default function HomeScreen() {
             </View>
           </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   };
+
+  const featuredProducts = products.filter(product => product.featured);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#fff', fontSize: 18 }}>Loading products...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -273,32 +277,41 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        {/* Featured Section */}
-        <Animated.View
-          style={[
-            styles.featuredSection,
-            {
-              opacity: featuredAnimation,
-              transform: [{
-                translateY: featuredAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [30, 0],
-                })
-              }]
-            }
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Fish</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
+        {/* Debug Info */}
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: '#fff', marginBottom: 10 }}>
+            Debug Info: {products.length} products loaded, {filteredProducts.length} filtered
+          </Text>
+        </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {featuredProducts.map((item, index) => renderProductCard(item, index, true))}
-          </ScrollView>
-        </Animated.View>
+        {/* Featured Section */}
+        {featuredProducts.length > 0 && (
+          <Animated.View
+            style={[
+              styles.featuredSection,
+              {
+                opacity: featuredAnimation,
+                transform: [{
+                  translateY: featuredAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  })
+                }]
+              }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Featured Fish</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {featuredProducts.map((item) => renderProductCard(item, true))}
+            </ScrollView>
+          </Animated.View>
+        )}
 
         {/* All Products */}
         <View style={styles.allProductsSection}>
@@ -310,7 +323,13 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.productsGrid}>
-            {filteredProducts.map((item, index) => renderProductCard(item, index))}
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((item) => renderProductCard(item))
+            ) : (
+              <Text style={{ color: '#fff', textAlign: 'center', width: '100%' }}>
+                No products found
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -324,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
   },
   scrollContent: {
-    paddingBottom: 100, // Space for tab bar
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 20,
@@ -362,20 +381,6 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: '#FF6B6B',
     borderRadius: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    color: '#666',
-    fontSize: 16,
   },
   categoriesContainer: {
     paddingLeft: 20,
@@ -482,14 +487,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 8,
   },
   productInfo: {
     padding: 16,
