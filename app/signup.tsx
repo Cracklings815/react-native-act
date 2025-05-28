@@ -1,40 +1,51 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, } from "react-native";
 import { useRouter } from "expo-router";
+import { db } from "../scripts/firebase";
+import { ref, push } from "firebase/database";
+
 
 export default function SignUp() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const router = useRouter();
 
   const handleSignUp = () => {
-    if (!email || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
-    // Add sign up logic here (e.g. API call)
 
-    Alert.alert("Success", "Account created!", [
-      {
-        text: "OK",
-        onPress: () => router.push("/login"),  // Navigate to login page
-      },
-    ]);
+    const usersRef = ref(db, "users");
+
+    // Create a new user object
+    const newUser = {
+      username,
+      email,
+      password,
+      role: "user",
+    };
+
+    // Push the new user to the database
+    push(usersRef, newUser)
+      .then(() => {
+        Alert.alert("Success", "Account created!", [
+          {
+            text: "OK",
+            onPress: () => router.push("/login"),
+          },
+        ]);
+      })
+      .catch((error) => {
+        Alert.alert("Error", "Failed to create account: " + error.message);
+      });
   };
 
   return (
@@ -56,6 +67,15 @@ export default function SignUp() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Create Account</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          placeholderTextColor="#999"
+          autoCapitalize="none"
+          value={username}
+          onChangeText={setUsername}
+        />
 
         <TextInput
           style={styles.input}

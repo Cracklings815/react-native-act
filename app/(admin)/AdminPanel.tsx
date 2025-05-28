@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, usePathname } from 'expo-router';
-
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-  Image,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput, Image, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from "../../scripts/firebase";
+import { ref, push, set, get, update, remove } from 'firebase/database';
+
 
 export default function AdminHome() {
   type Product = {
@@ -60,7 +52,30 @@ export default function AdminHome() {
     image: null,
   });
 
-  const handleAddProduct = () => {
+  const fetchProducts = async () => {
+    try {
+      const snapshot = await get(ref(db, 'products'));
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const productArray = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key],
+        }));
+        setProducts(productArray);
+      } else {
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  // Call fetchProducts() inside a useEffect:
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleAddProduct = async () => {
     const { name, category, price, stock, image } = newProduct;
 
     if (!name || !category || !price || !stock || !image) {
@@ -68,20 +83,24 @@ export default function AdminHome() {
       return;
     }
 
-    const newId = Date.now().toString();
-    setProducts(prev => [
-      ...prev,
-      {
-        id: newId,
+    try {
+      const newProductRef = push(ref(db, 'products'));
+      await set(newProductRef, {
         name,
         category,
         price: parseFloat(price),
         stock: parseInt(stock),
         image,
-      },
-    ]);
-    setNewProduct({ name: '', category: '', price: '', stock: '', image: null });
-    setModalVisible(false);
+      });
+
+      Alert.alert('Success', 'Product added successfully.');
+
+      setNewProduct({ name: '', category: '', price: '', stock: '', image: null });
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add product.');
+      console.error(error);
+    }
   };
 
   const pickImage = async () => {
@@ -103,17 +122,27 @@ export default function AdminHome() {
     }
   };
 
-  const increaseStock = (id: string) => {
+  const increaseStock = async (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    const newStock = product.stock + 1;
+    await update(ref(db, `products/${id}`), { stock: newStock });
+
     setProducts(prev =>
-      prev.map(p => (p.id === id ? { ...p, stock: p.stock + 1 } : p))
+      prev.map(p => (p.id === id ? { ...p, stock: newStock } : p))
     );
   };
 
-  const decreaseStock = (id: string) => {
+  const decreaseStock = async (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (!product || product.stock <= 0) return;
+
+    const newStock = product.stock - 1;
+    await update(ref(db, `products/${id}`), { stock: newStock });
+
     setProducts(prev =>
-      prev.map(p =>
-        p.id === id && p.stock > 0 ? { ...p, stock: p.stock - 1 } : p
-      )
+      prev.map(p => (p.id === id ? { ...p, stock: newStock } : p))
     );
   };
 
@@ -123,10 +152,19 @@ export default function AdminHome() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => setProducts(prev => prev.filter(p => p.id !== id)),
+        onPress: async () => {
+          try {
+            await remove(ref(db, `products/${id}`));
+            setProducts(prev => prev.filter(p => p.id !== id));
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete product.');
+            console.error(error);
+          }
+        },
       },
     ]);
   };
+
 
   const router = useRouter();
   const pathname = usePathname();
@@ -190,7 +228,7 @@ export default function AdminHome() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Add New Product</Text>
 
-        
+
             <View style={styles.pickerWrapper}>
               <Picker
                 selectedValue={newProduct.category}
@@ -200,10 +238,9 @@ export default function AdminHome() {
                 style={styles.picker}
               >
                 <Picker.Item label="Select Category" value="" />
-                <Picker.Item label="Freshwater" value="Freshwater" />
-                <Picker.Item label="Saltwater" value="Saltwater" />
-                <Picker.Item label="Tropical" value="Tropical" />
-                <Picker.Item label="Coldwater" value="Coldwater" />
+                <Picker.Item label="Guppy" value="Guppy" />
+                <Picker.Item label="Goldfish" value="Goldfish" />
+                <Picker.Item label="Molly" value="Molly" />
               </Picker>
             </View>
 
@@ -233,21 +270,21 @@ export default function AdminHome() {
                 setNewProduct({ ...newProduct, stock: text })
               }
             />
-            
+
             <View style={styles.imagePickerContainer}>
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
                 <Ionicons name="image" size={24} color="#555" />
                 <Text style={styles.imagePickerText}>
-                {newProduct.image ? 'Change Image' : 'Add Image'}
+                  {newProduct.image ? 'Change Image' : 'Add Image'}
                 </Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            {newProduct.image && (
+              {newProduct.image && (
                 <Image
-                source={{ uri: newProduct.image }}
-                style={styles.previewImage}
+                  source={{ uri: newProduct.image }}
+                  style={styles.previewImage}
                 />
-            )}
+              )}
             </View>
 
             <View style={styles.modalButtons}>
@@ -269,34 +306,34 @@ export default function AdminHome() {
       </Modal>
 
       <View style={styles.bottomNav}>
-        <TouchableOpacity 
-          style={styles.navItem} 
+        <TouchableOpacity
+          style={styles.navItem}
           onPress={() => router.push('/(admin)/AdminPanel')}
         >
-          <Ionicons 
-            name="home" 
-            size={24} 
-            color={isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575'} 
+          <Ionicons
+            name="home"
+            size={24}
+            color={isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575'}
           />
           <Text style={[
-            styles.navLabel, 
+            styles.navLabel,
             { color: isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575' }
           ]}>
             Home
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.navItem} 
+        <TouchableOpacity
+          style={styles.navItem}
           onPress={() => router.push('/(admin)/Sales')}
         >
-          <Ionicons 
-            name="analytics" 
-            size={24} 
-            color={isActiveRoute('Sales') ? '#3F51B5' : '#757575'} 
+          <Ionicons
+            name="analytics"
+            size={24}
+            color={isActiveRoute('Sales') ? '#3F51B5' : '#757575'}
           />
           <Text style={[
-            styles.navLabel, 
+            styles.navLabel,
             { color: isActiveRoute('Sales') ? '#3F51B5' : '#757575' }
           ]}>
             Reports
@@ -457,7 +494,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  
+
   imagePicker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -466,12 +503,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
-  
+
   imagePickerText: {
     marginLeft: 8,
     fontSize: 16,
   },
-  
+
   previewImage: {
     width: 120,
     height: 120,
