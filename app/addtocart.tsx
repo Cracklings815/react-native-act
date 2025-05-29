@@ -87,11 +87,11 @@ export default function AddToCartScreen() {
       console.log('Fetching product data for:', product.id);
       const productRef = ref(db, `products/${product.id}`);
       const snapshot = await get(productRef);
-      
+
       if (snapshot.exists()) {
         const productData = snapshot.val();
         console.log('Product data from Firebase:', productData);
-        
+
         // Update stock
         if (productData.stock !== undefined) {
           setCurrentStock(productData.stock);
@@ -100,7 +100,7 @@ export default function AddToCartScreen() {
             setQuantity(Math.min(quantity, productData.stock));
           }
         }
-        
+
         // Set product image
         if (productData.image) {
           setProductImage(productData.image);
@@ -339,18 +339,18 @@ export default function AddToCartScreen() {
                 <Text style={styles.loadingText}>Loading image...</Text>
               </View>
             ) : productImage ? (
-              <Image 
-                source={{ uri: productImage }} 
+              <Image
+                source={{ uri: productImage }}
                 style={styles.productImage}
                 onError={(error) => {
-                  console.error('Image loading error:', error);
+                  // console.error('Image loading error:', error);
                   setProductImage(null);
                 }}
               />
             ) : (
               <View style={styles.placeholderContainer}>
                 <Ionicons name="fish-outline" size={100} color="#666" />
-                <Text style={styles.placeholderText}>No image available</Text>
+                {/* <Text style={styles.placeholderText}>No image available</Text> */}
               </View>
             )}
 
