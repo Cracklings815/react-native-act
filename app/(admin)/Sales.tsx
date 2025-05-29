@@ -1,103 +1,244 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  FlatList,
-  ScrollView,
-  Modal,
-  Alert
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    FlatList,
+    ScrollView,
+    Modal,
+    Alert,
+    ActivityIndicator
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from '../../scripts/firebase';
+import { ref, get } from 'firebase/database';
+
+// Define types
+type OrderItem = {
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    totalPrice: number;
+    image: string;
+    category?: string;
+};
+
+type Order = {
+    id: string;
+    orderNumber: string;
+    items: OrderItem[];
+    totalAmount: number;
+    status: string;
+    createdAt: number;
+    userEmail?: string;
+    customerName?: string;
+};
+
+type Transaction = {
+    id: string;
+    productName: string;
+    category: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    date: string;
+    time: string;
+    customerName: string;
+    status: string;
+    orderNumber: string;
+    userEmail: string;
+};
+
+type ProductSales = {
+    [key: string]: {
+        name: string;
+        quantity: number;
+        category: string;
+    }
+};
+
+type UserSummary = {
+    email: string;
+    totalOrders: number;
+    totalSpent: number;
+    completedOrders: number;
+    pendingOrders: number;
+};
 
 const Sales = () => {
     const router = useRouter();
     const pathname = usePathname();
-    
-    // Sample transaction data
-    const [transactions, setTransactions] = useState([
-        {
-            id: '1',
-            productName: 'Goldfish',
-            category: 'Freshwater',
-            quantity: 2,
-            unitPrice: 50,
-            totalPrice: 100,
-            date: '2025-05-25',
-            time: '10:30 AM',
-            customerName: 'John Doe',
-            status: 'Completed'
-        },
-        {
-            id: '2',
-            productName: 'Clownfish',
-            category: 'Saltwater',
-            quantity: 1,
-            unitPrice: 80,
-            totalPrice: 80,
-            date: '2025-05-25',
-            time: '02:15 PM',
-            customerName: 'Jane Smith',
-            status: 'Completed'
-        },
-        {
-            id: '3',
-            productName: 'Goldfish',
-            category: 'Freshwater',
-            quantity: 3,
-            unitPrice: 50,
-            totalPrice: 150,
-            date: '2025-05-24',
-            time: '11:45 AM',
-            customerName: 'Mike Johnson',
-            status: 'Completed'
-        },
-        {
-            id: '4',
-            productName: 'Betta Fish',
-            category: 'Tropical',
-            quantity: 1,
-            unitPrice: 35,
-            totalPrice: 35,
-            date: '2025-05-24',
-            time: '04:20 PM',
-            customerName: 'Sarah Wilson',
-            status: 'Pending'
-        },
-        {
-            id: '5',
-            productName: 'Clownfish',
-            category: 'Saltwater',
-            quantity: 2,
-            unitPrice: 80,
-            totalPrice: 160,
-            date: '2025-05-23',
-            time: '09:10 AM',
-            customerName: 'David Brown',
-            status: 'Completed'
-        }
-    ]);
 
-    type Transaction = {
-        id: string;
-        productName: string;
-        category: string;
-        quantity: number;
-        unitPrice: number;
-        totalPrice: number;
-        date: string;
-        time: string;
-        customerName: string;
-        status: string;
-    };
-    
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState('All');
 
-   
+    // Sales metrics
+    const [totalSales, setTotalSales] = useState(0);
+    const [completedOrders, setCompletedOrders] = useState(0);
+    const [pendingOrders, setPendingOrders] = useState(0);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [bestSellingProduct, setBestSellingProduct] = useState({
+        name: '',
+        quantity: 0,
+        category: ''
+    });
+    const [topCustomers, setTopCustomers] = useState<UserSummary[]>([]);
+
+    useEffect(() => {
+        fetchAllOrders();
+    }, []);
+
+    const fetchAllOrders = async () => {
+        try {
+            setLoading(true);
+            const ordersRef = ref(db, 'orders');
+            const snapshot = await get(ordersRef);
+
+            if (snapshot.exists()) {
+                const allOrdersData = snapshot.val();
+
+                // Process orders from all users
+                const transactionsArray: Transaction[] = [];
+                const productSales: ProductSales = {};
+                const userSummaries: { [email: string]: UserSummary } = {};
+
+                let totalSalesAmount = 0;
+                let completed = 0;
+                let pending = 0;
+
+                // Iterate through each user's orders
+                Object.keys(allOrdersData).forEach(userKey => {
+                    const userOrders = allOrdersData[userKey];
+                    const userEmail = userKey.replace(/_/g, '.'); // Convert back from sanitized format
+
+                    // Initialize user summary
+                    if (!userSummaries[userEmail]) {
+                        userSummaries[userEmail] = {
+                            email: userEmail,
+                            totalOrders: 0,
+                            totalSpent: 0,
+                            completedOrders: 0,
+                            pendingOrders: 0,
+                        };
+                    }
+
+                    // Process each order for this user
+                    Object.keys(userOrders).forEach(orderKey => {
+                        const order = userOrders[orderKey];
+
+                        // Update user summary
+                        userSummaries[userEmail].totalOrders++;
+
+                        // Count order statuses
+                        if (order.status.toLowerCase() === 'completed') {
+                            completed++;
+                            totalSalesAmount += order.totalAmount;
+                            userSummaries[userEmail].completedOrders++;
+                            userSummaries[userEmail].totalSpent += order.totalAmount;
+                        } else if (order.status.toLowerCase() === 'pending') {
+                            pending++;
+                            userSummaries[userEmail].pendingOrders++;
+                        }
+
+                        // Process each item in the order
+                        order.items.forEach((item: OrderItem) => {
+                            // Get category with fallback
+                            const category = item.category || 'Fish';
+
+                            // Track product sales for best selling calculation
+                            if (!productSales[item.productId]) {
+                                productSales[item.productId] = {
+                                    name: item.name,
+                                    quantity: 0,
+                                    category: category
+                                };
+                            }
+
+                            if (order.status.toLowerCase() === 'completed') {
+                                productSales[item.productId].quantity += item.quantity;
+                            }
+
+                            // Create transaction record
+                            transactionsArray.push({
+                                id: `${orderKey}-${item.productId}`,
+                                productName: item.name,
+                                category: category,
+                                quantity: item.quantity,
+                                unitPrice: item.price,
+                                totalPrice: item.totalPrice,
+                                date: new Date(order.createdAt).toLocaleDateString(),
+                                time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                customerName: userEmail.split('@')[0], // Use email prefix as customer name
+                                status: order.status,
+                                orderNumber: order.orderNumber,
+                                userEmail: userEmail
+                            });
+                        });
+                    });
+                });
+
+                // Find best selling product
+                let bestProduct = { id: '', name: '', quantity: 0, category: '' };
+                Object.keys(productSales).forEach(productId => {
+                    if (productSales[productId].quantity > bestProduct.quantity) {
+                        bestProduct = {
+                            id: productId,
+                            name: productSales[productId].name,
+                            quantity: productSales[productId].quantity,
+                            category: productSales[productId].category
+                        };
+                    }
+                });
+
+                // Sort transactions by date (newest first)
+                transactionsArray.sort((a, b) => {
+                    const dateA = new Date(`${a.date} ${a.time}`).getTime();
+                    const dateB = new Date(`${b.date} ${b.time}`).getTime();
+                    return dateB - dateA;
+                });
+
+                // Get top customers (by total spent)
+                const topCustomersList = Object.values(userSummaries)
+                    .sort((a, b) => b.totalSpent - a.totalSpent)
+                    .slice(0, 5);
+
+                // Update state
+                setTransactions(transactionsArray);
+                setTotalSales(totalSalesAmount);
+                setCompletedOrders(completed);
+                setPendingOrders(pending);
+                setTotalUsers(Object.keys(userSummaries).length);
+                setBestSellingProduct({
+                    name: bestProduct.name,
+                    quantity: bestProduct.quantity,
+                    category: bestProduct.category
+                });
+                setTopCustomers(topCustomersList);
+
+            } else {
+                console.log('No orders found in database');
+                setTransactions([]);
+                setTotalSales(0);
+                setCompletedOrders(0);
+                setPendingOrders(0);
+                setTotalUsers(0);
+                setBestSellingProduct({ name: '', quantity: 0, category: '' });
+                setTopCustomers([]);
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            Alert.alert('Error', 'Failed to load sales data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     interface IsActiveRouteFn {
         (route: string): boolean;
     }
@@ -105,25 +246,6 @@ const Sales = () => {
     const isActiveRoute: IsActiveRouteFn = (route) => {
         return pathname.includes(route);
     };
-
-    
-    const totalSales = transactions
-        .filter(t => t.status === 'Completed')
-        .reduce((sum, t) => sum + t.totalPrice, 0);
-    
-    const totalTransactions = transactions.filter(t => t.status === 'Completed').length;
-    const pendingTransactions = transactions.filter(t => t.status === 'Pending').length;
-
-    const mostSoldProduct = transactions
-        .filter(t => t.status === 'Completed')
-        .reduce((acc: { [key: string]: number }, curr) => {
-            acc[curr.productName] = (acc[curr.productName] || 0) + curr.quantity;
-            return acc;
-        }, {} as { [key: string]: number });
-    
-    const topProduct = Object.keys(mostSoldProduct).reduce((a, b) => 
-        mostSoldProduct[a] > mostSoldProduct[b] ? a : b, ''
-    );
 
     interface ShowTransactionDetailsFn {
         (transaction: Transaction): void;
@@ -139,11 +261,18 @@ const Sales = () => {
     }
 
     const getStatusColor: GetStatusColorFn = (status) => {
-        return status === 'Completed' ? '#4CAF50' : '#FF9800';
+        switch (status.toLowerCase()) {
+            case 'completed': return '#4CAF50';
+            case 'pending': return '#FF9800';
+            case 'processing': return '#2196F3';
+            case 'shipped': return '#FF5722';
+            case 'cancelled': return '#F44336';
+            default: return '#757575';
+        }
     };
 
     const renderTransaction = ({ item }: { item: Transaction }) => (
-        <TouchableOpacity 
+        <TouchableOpacity
             style={styles.transactionCard}
             onPress={() => showTransactionDetails(item)}
         >
@@ -153,7 +282,9 @@ const Sales = () => {
                     {item.status}
                 </Text>
             </View>
+            <Text style={styles.transactionDetail}>Order: {item.orderNumber}</Text>
             <Text style={styles.transactionDetail}>Customer: {item.customerName}</Text>
+            <Text style={styles.transactionDetail}>Email: {item.userEmail}</Text>
             <Text style={styles.transactionDetail}>Quantity: {item.quantity}</Text>
             <View style={styles.transactionFooter}>
                 <Text style={styles.transactionDate}>{item.date} {item.time}</Text>
@@ -162,11 +293,43 @@ const Sales = () => {
         </TouchableOpacity>
     );
 
+    const renderTopCustomer = ({ item, index }: { item: UserSummary; index: number }) => (
+        <View style={styles.customerCard}>
+            <View style={styles.customerRank}>
+                <Text style={styles.rankNumber}>#{index + 1}</Text>
+            </View>
+            <View style={styles.customerInfo}>
+                <Text style={styles.customerEmail}>{item.email}</Text>
+                <Text style={styles.customerStats}>
+                    {item.completedOrders} orders • ₱{item.totalSpent.toFixed(2)}
+                </Text>
+            </View>
+        </View>
+    );
+
+    const refreshData = () => {
+        fetchAllOrders();
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#3F51B5" />
+                <Text style={styles.loadingText}>Loading sales data...</Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                <Text style={styles.title}>Sales Report</Text>
-                
+                <View style={styles.headerContainer}>
+                    <Text style={styles.title}>Sales Report</Text>
+                    <TouchableOpacity style={styles.refreshButton} onPress={refreshData}>
+                        <Ionicons name="refresh" size={22} color="#3F51B5" />
+                    </TouchableOpacity>
+                </View>
+
                 {/* Summary Cards */}
                 <View style={styles.summaryContainer}>
                     <View style={styles.summaryCard}>
@@ -174,28 +337,54 @@ const Sales = () => {
                         <Text style={styles.summaryValue}>₱{totalSales.toFixed(2)}</Text>
                         <Text style={styles.summaryLabel}>Total Sales</Text>
                     </View>
-                    
+
                     <View style={styles.summaryCard}>
                         <Ionicons name="receipt" size={24} color="#2196F3" />
-                        <Text style={styles.summaryValue}>{totalTransactions}</Text>
+                        <Text style={styles.summaryValue}>{completedOrders}</Text>
                         <Text style={styles.summaryLabel}>Completed</Text>
                     </View>
-                    
+
                     <View style={styles.summaryCard}>
                         <Ionicons name="time" size={24} color="#FF9800" />
-                        <Text style={styles.summaryValue}>{pendingTransactions}</Text>
+                        <Text style={styles.summaryValue}>{pendingOrders}</Text>
                         <Text style={styles.summaryLabel}>Pending</Text>
+                    </View>
+
+                    <View style={styles.summaryCard}>
+                        <Ionicons name="people" size={24} color="#9C27B0" />
+                        <Text style={styles.summaryValue}>{totalUsers}</Text>
+                        <Text style={styles.summaryLabel}>Customers</Text>
                     </View>
                 </View>
 
                 {/* Top Product */}
                 <View style={styles.topProductCard}>
                     <Text style={styles.topProductTitle}>Best Selling Product</Text>
-                    <Text style={styles.topProductName}>{topProduct}</Text>
-                    <Text style={styles.topProductSold}>
-                        {mostSoldProduct[topProduct]} units sold
-                    </Text>
+                    {bestSellingProduct.name ? (
+                        <>
+                            <Text style={styles.topProductName}>{bestSellingProduct.name}</Text>
+                            <Text style={styles.topProductCategory}>{bestSellingProduct.category}</Text>
+                            <Text style={styles.topProductSold}>
+                                {bestSellingProduct.quantity} units sold
+                            </Text>
+                        </>
+                    ) : (
+                        <Text style={styles.noDataText}>No sales data available</Text>
+                    )}
                 </View>
+
+                {/* Top Customers */}
+                {topCustomers.length > 0 && (
+                    <View style={styles.topCustomersCard}>
+                        <Text style={styles.topCustomersTitle}>Top Customers</Text>
+                        <FlatList
+                            data={topCustomers}
+                            renderItem={renderTopCustomer}
+                            keyExtractor={(item) => item.email}
+                            scrollEnabled={false}
+                        />
+                    </View>
+                )}
 
                 {/* Filter Options */}
                 <View style={styles.filterContainer}>
@@ -207,13 +396,20 @@ const Sales = () => {
                 </View>
 
                 {/* Transactions List */}
-                <FlatList
-                    data={transactions}
-                    renderItem={renderTransaction}
-                    keyExtractor={item => item.id}
-                    style={styles.transactionsList}
-                    scrollEnabled={false}
-                />
+                {transactions.length > 0 ? (
+                    <FlatList
+                        data={transactions}
+                        renderItem={renderTransaction}
+                        keyExtractor={item => item.id}
+                        style={styles.transactionsList}
+                        scrollEnabled={false}
+                    />
+                ) : (
+                    <View style={styles.noTransactionsContainer}>
+                        <Ionicons name="receipt-outline" size={48} color="#ccc" />
+                        <Text style={styles.noTransactionsText}>No transactions found</Text>
+                    </View>
+                )}
             </ScrollView>
 
             {/* Transaction Details Modal */}
@@ -231,12 +427,12 @@ const Sales = () => {
                                 <Ionicons name="close" size={24} color="#666" />
                             </TouchableOpacity>
                         </View>
-                        
+
                         {selectedTransaction && (
                             <View style={styles.modalContent}>
                                 <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>Transaction ID:</Text>
-                                    <Text style={styles.detailValue}>#{selectedTransaction.id}</Text>
+                                    <Text style={styles.detailLabel}>Order Number:</Text>
+                                    <Text style={styles.detailValue}>{selectedTransaction.orderNumber}</Text>
                                 </View>
                                 <View style={styles.detailRow}>
                                     <Text style={styles.detailLabel}>Product:</Text>
@@ -249,6 +445,10 @@ const Sales = () => {
                                 <View style={styles.detailRow}>
                                     <Text style={styles.detailLabel}>Customer:</Text>
                                     <Text style={styles.detailValue}>{selectedTransaction.customerName}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Text style={styles.detailLabel}>Email:</Text>
+                                    <Text style={styles.detailValue}>{selectedTransaction.userEmail}</Text>
                                 </View>
                                 <View style={styles.detailRow}>
                                     <Text style={styles.detailLabel}>Quantity:</Text>
@@ -273,7 +473,7 @@ const Sales = () => {
                                 <View style={styles.detailRow}>
                                     <Text style={styles.detailLabel}>Status:</Text>
                                     <Text style={[
-                                        styles.detailValue, 
+                                        styles.detailValue,
                                         { color: getStatusColor(selectedTransaction.status) }
                                     ]}>
                                         {selectedTransaction.status}
@@ -287,34 +487,34 @@ const Sales = () => {
 
             {/* Bottom Navigation */}
             <View style={styles.bottomNav}>
-                <TouchableOpacity 
-                    style={styles.navItem} 
+                <TouchableOpacity
+                    style={styles.navItem}
                     onPress={() => router.push('/(admin)/AdminPanel')}
                 >
-                    <Ionicons 
-                        name="home" 
-                        size={24} 
-                        color={isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575'} 
+                    <Ionicons
+                        name="home"
+                        size={24}
+                        color={isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575'}
                     />
                     <Text style={[
-                        styles.navLabel, 
+                        styles.navLabel,
                         { color: isActiveRoute('AdminPanel') ? '#3F51B5' : '#757575' }
                     ]}>
                         Home
                     </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.navItem} 
+                <TouchableOpacity
+                    style={styles.navItem}
                     onPress={() => router.push('/(admin)/Sales')}
                 >
-                    <Ionicons 
-                        name="analytics" 
-                        size={24} 
-                        color={isActiveRoute('Sales') ? '#3F51B5' : '#757575'} 
+                    <Ionicons
+                        name="analytics"
+                        size={24}
+                        color={isActiveRoute('Sales') ? '#3F51B5' : '#757575'}
                     />
                     <Text style={[
-                        styles.navLabel, 
+                        styles.navLabel,
                         { color: isActiveRoute('Sales') ? '#3F51B5' : '#757575' }
                     ]}>
                         Reports
@@ -325,20 +525,20 @@ const Sales = () => {
                     style={styles.navItem}
                     onPress={() => {
                         Alert.alert(
-                        'Confirm Logout',
-                        'Are you sure you want to logout?',
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                            text: 'Logout',
-                            style: 'destructive',
-                            onPress: () => router.replace('/login'), // Adjust path as needed
-                            },
-                        ],
-                        { cancelable: true }
+                            'Confirm Logout',
+                            'Are you sure you want to logout?',
+                            [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Logout',
+                                    style: 'destructive',
+                                    onPress: () => router.replace('/login'),
+                                },
+                            ],
+                            { cancelable: true }
                         );
                     }}
-                    >
+                >
                     <Ionicons
                         name="log-out-outline"
                         size={24}
@@ -356,22 +556,42 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f5f5f5',
     },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#666',
+    },
     content: {
         flex: 1,
         padding: 16,
         paddingBottom: 80,
     },
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 40,
+        marginBottom: 20,
+    },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        marginTop: 40,
-        marginBottom: 20,
         color: '#333',
+    },
+    refreshButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(63, 81, 181, 0.1)',
     },
     summaryContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 20,
+        flexWrap: 'wrap',
     },
     summaryCard: {
         backgroundColor: '#fff',
@@ -379,20 +599,22 @@ const styles = StyleSheet.create({
         padding: 16,
         alignItems: 'center',
         flex: 1,
-        marginHorizontal: 4,
+        marginHorizontal: 2,
+        marginVertical: 4,
         elevation: 2,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 4,
+        minWidth: '22%',
     },
     summaryValue: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         marginVertical: 4,
         color: '#333',
     },
     summaryLabel: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#666',
         textAlign: 'center',
     },
@@ -417,9 +639,69 @@ const styles = StyleSheet.create({
         color: '#3F51B5',
         marginBottom: 4,
     },
+    topProductCategory: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 4,
+    },
     topProductSold: {
         fontSize: 14,
         color: '#4CAF50',
+    },
+    topCustomersCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 20,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    topCustomersTitle: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 12,
+    },
+    customerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    customerRank: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#3F51B5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    rankNumber: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    customerInfo: {
+        flex: 1,
+    },
+    customerEmail: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+    },
+    customerStats: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 2,
+    },
+    noDataText: {
+        fontSize: 16,
+        color: '#999',
+        fontStyle: 'italic',
+        marginTop: 8,
     },
     filterContainer: {
         flexDirection: 'row',
@@ -448,6 +730,19 @@ const styles = StyleSheet.create({
     },
     transactionsList: {
         marginBottom: 20,
+    },
+    noTransactionsContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    noTransactionsText: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#999',
     },
     transactionCard: {
         backgroundColor: '#fff',

@@ -1,79 +1,124 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  ScrollView,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import { Image, StyleSheet, View, Text, TouchableOpacity, Animated, ScrollView, Dimensions, StatusBar, } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from "../../scripts/firebase";
+import { ref, push, set, get } from 'firebase/database';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const products = [
-  { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
-  { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
-  { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
-  { id: '4', name: 'Koi Guppy', price: 90, stocks: 10, image: require('@/assets/images/koi.jpg'), category: 'Guppy', featured: true },
-  { id: '5', name: 'Full Gold Guppy', price: 85, stocks: 20, image: require('@/assets/images/gold.jpg'), category: 'Guppy' },
-  { id: '6', name: 'Half Black Blue Guppy', price: 95, stocks: 5, image: require('@/assets/images/hbb3.jpg'), category: 'Guppy' },
-  { id: '7', name: 'Black Ranchu Goldfish', price: 1000, stocks: 55, image: require('@/assets/images/ranchu.png'), category: 'Goldfish', featured: true },
-  { id: '8', name: 'White Balloon Molly', price: 150, stocks: 5, image: require('@/assets/images/molly.jpg'), category: 'Molly' },
-  { id: '9', name: 'Fancy Oranda Goldfish', price: 1500, stocks: 45, image: require('@/assets/images/oranda.jpg'), category: 'Goldfish', featured: true },
-  { id: '10', name: 'Butterfly Telescope Goldfish', price: 5000, stocks: 5, image: require('@/assets/images/butterfly.jpg'), category: 'Goldfish' },
-];
-
 const categories = ['All', 'Guppy', 'Goldfish', 'Molly'];
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stocks: number;
+  image: string;
+  category: string;
+  featured?: boolean;
+}
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [filteredProducts, setFilteredProducts] = useState(products);
-  
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
   // Animation values
   const headerAnimation = useRef(new Animated.Value(0)).current;
   const categoryAnimation = useRef(new Animated.Value(0)).current;
-  const productAnimations = useRef(products.map(() => new Animated.Value(0))).current;
   const featuredAnimation = useRef(new Animated.Value(0)).current;
 
+  // Fallback image for when database image fails to load
+  const fallbackImage = require('@/assets/images/Basic-Fish-Drawing.jpg');
+
+  // Helper function to validate URL
+  const isValidUrl = (string: string): boolean => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  // Helper function to get image source
+  const getImageSource = (item: Product) => {
+    // If there's an error for this product, use fallback
+    if (imageErrors.has(item.id)) {
+      return fallbackImage;
+    }
+
+    // If image exists and is a valid URL, use it
+    if (item.image && isValidUrl(item.image)) {
+      return { uri: item.image };
+    }
+
+    // Otherwise use fallback
+    return fallbackImage;
+  };
+
+  // Handle image load errors
+  const handleImageError = (productId: string, productName: string) => {
+    console.log(`Image load error for ${productName} (ID: ${productId})`);
+    setImageErrors(prev => new Set(prev).add(productId));
+  };
+
   useEffect(() => {
-    // Animate header
-    Animated.timing(headerAnimation, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching products from Firebase...');
 
-    // Animate categories
-    Animated.timing(categoryAnimation, {
-      toValue: 1,
-      duration: 600,
-      delay: 200,
-      useNativeDriver: true,
-    }).start();
+        const snapshot = await get(ref(db, 'products'));
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          console.log('Raw Firebase data:', data);
 
-    // Animate featured section
-    Animated.timing(featuredAnimation, {
-      toValue: 1,
-      duration: 600,
-      delay: 400,
-      useNativeDriver: true,
-    }).start();
+          const loadedProducts = Object.keys(data).map(key => {
+            const product = {
+              id: key,
+              ...data[key],
+              image: data[key].image || '', // Ensure image is always a string
+            };
+            console.log('Processed product:', product);
+            return product;
+          });
 
-    // Stagger product animations
-    const staggerAnimations = productAnimations.map(anim =>
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      })
-    );
-    Animated.stagger(80, staggerAnimations).start();
+          console.log('All loaded products:', loadedProducts);
+
+          setProducts(loadedProducts);
+          setFilteredProducts(loadedProducts);
+        } else {
+          console.log('No products found in Firebase');
+          // Fallback to hardcoded products for testing
+          const fallbackProducts = [
+            { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: require('@/assets/images/afr.jpg'), category: 'Guppy', featured: true },
+            { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: require('@/assets/images/bluedragon.jpg'), category: 'Guppy' },
+            { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: require('@/assets/images/hbwhite.jpg'), category: 'Guppy' },
+          ];
+          setProducts(fallbackProducts);
+          setFilteredProducts(fallbackProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        // Fallback to hardcoded products on error
+        const fallbackProducts = [
+          { id: '1', name: 'African Full Red Guppy', price: 50, stocks: 100, image: '', category: 'Guppy', featured: true },
+          { id: '2', name: 'Blue Dragon Guppy', price: 50, stocks: 200, image: '', category: 'Guppy' },
+          { id: '3', name: 'Half Black White Guppy', price: 80, stocks: 50, image: '', category: 'Guppy' },
+        ];
+        setProducts(fallbackProducts);
+        setFilteredProducts(fallbackProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   useEffect(() => {
@@ -82,49 +127,49 @@ export default function HomeScreen() {
     } else {
       setFilteredProducts(products.filter(product => product.category === selectedCategory));
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, products]);
 
-  const featuredProducts = products.filter(product => product.featured);
+  useEffect(() => {
+    // Start animations when component mounts
+    Animated.timing(headerAnimation, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
 
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    stocks: number;
-    image: any;
-    category: string;
-    featured?: boolean;
-  }
+    Animated.timing(categoryAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 200,
+      useNativeDriver: true,
+    }).start();
 
-  interface ProductCardProps {
-    item: Product;
-    index: number;
-    isLarge?: boolean;
-  }
+    Animated.timing(featuredAnimation, {
+      toValue: 1,
+      duration: 600,
+      delay: 400,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const renderProductCard = (
     item: Product,
-    index: number,
     isLarge: boolean = false
   ): React.ReactElement => {
-    const opacity = productAnimations[products.findIndex((p) => p.id === item.id)];
-    const scale = opacity.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-    });
+    console.log('Rendering product card for:', item.name);
 
     return (
-      <Animated.View
+      <View
         key={item.id}
         style={[
           isLarge ? styles.featuredCard : styles.productCard,
-          { opacity, transform: [{ scale }] },
         ]}
       >
         <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
-          }
+          onPress={() => {
+            console.log('Product clicked:', item.name);
+            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } });
+          }}
           activeOpacity={0.9}
           style={styles.touchable}
         >
@@ -138,13 +183,15 @@ export default function HomeScreen() {
             <Text style={styles.stockText}>{item.stocks}</Text>
           </View>
 
-          {/* Product image with overlay */}
+          {/* Product image with improved error handling */}
           <View style={styles.imageContainer}>
             <Image
-              source={item.image}
+              source={getImageSource(item)}
               style={isLarge ? styles.featuredImage : styles.productImage}
+              onError={() => handleImageError(item.id, item.name)}
+              onLoad={() => console.log('Image loaded successfully for:', item.name)}
+              resizeMode="cover"
             />
-            
           </View>
 
           {/* Product info */}
@@ -156,27 +203,37 @@ export default function HomeScreen() {
             <View style={styles.priceContainer}>
               <Text style={styles.productPrice}>₱{item.price}</Text>
               <TouchableOpacity style={styles.addButton} onPress={() =>
-            router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
-          }>
+                router.push({ pathname: '/addtocart', params: { product: JSON.stringify(item) } })
+              }>
                 <Ionicons name="add" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
     );
   };
+
+  const featuredProducts = products.filter(product => product.featured);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#fff', fontSize: 18 }}>Loading products...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
-      
-      <ScrollView 
+
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.header,
             {
@@ -203,7 +260,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Categories */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.categoriesContainer,
             {
@@ -238,32 +295,46 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
+        {/* Debug Info */}
+        {/* <View style={{ padding: 20 }}>
+          <Text style={{ color: '#fff', marginBottom: 10 }}>
+            Debug Info: {products.length} products loaded, {filteredProducts.length} filtered
+          </Text>
+          {imageErrors.size > 0 && (
+            <Text style={{ color: '#FF6B6B', fontSize: 12 }}>
+              Image errors: {imageErrors.size} products using fallback images
+            </Text>
+          )}
+        </View> */}
+
         {/* Featured Section */}
-        <Animated.View 
-          style={[
-            styles.featuredSection,
-            {
-              opacity: featuredAnimation,
-              transform: [{
-                translateY: featuredAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [30, 0],
-                })
-              }]
-            }
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Fish</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {featuredProducts.map((item, index) => renderProductCard(item, index, true))}
-          </ScrollView>
-        </Animated.View>
+        {featuredProducts.length > 0 && (
+          <Animated.View
+            style={[
+              styles.featuredSection,
+              {
+                opacity: featuredAnimation,
+                transform: [{
+                  translateY: featuredAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  })
+                }]
+              }
+            ]}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Featured Fish</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {featuredProducts.map((item) => renderProductCard(item, true))}
+            </ScrollView>
+          </Animated.View>
+        )}
 
         {/* All Products */}
         <View style={styles.allProductsSection}>
@@ -273,9 +344,15 @@ export default function HomeScreen() {
             </Text>
             <Text style={styles.productCount}>{filteredProducts.length} items</Text>
           </View>
-          
+
           <View style={styles.productsGrid}>
-            {filteredProducts.map((item, index) => renderProductCard(item, index))}
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((item) => renderProductCard(item))
+            ) : (
+              <Text style={{ color: '#fff', textAlign: 'center', width: '100%' }}>
+                No products found
+              </Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -289,7 +366,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
   },
   scrollContent: {
-    paddingBottom: 100, // Space for tab bar
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 20,
@@ -327,20 +404,6 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: '#FF6B6B',
     borderRadius: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    color: '#666',
-    fontSize: 16,
   },
   categoriesContainer: {
     paddingLeft: 20,
@@ -447,14 +510,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 8,
   },
   productInfo: {
     padding: 16,

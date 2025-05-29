@@ -2,41 +2,52 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
-
-
+import { db } from "../scripts/firebase";
+import { ref, get } from "firebase/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
+  // const [redirect, setRedirect] = useState<"admin" | "user" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please enter both email and password.");
       return;
     }
 
-    if (email === "paul" && password === "paul") {
-      Alert.alert("Welcome", "Logged in as Admin");
-      setRedirect("admin");
-    } else if (email === "jp" && password === "jp") {
-      Alert.alert("Welcome", "Logged in as User");
-      setRedirect("user");
-    } else {
-      Alert.alert("Error", "Invalid credentials.");
+    const usersRef = ref(db, "users");
+    try {
+      const snapshot = await get(usersRef);
+      const users = snapshot.val();
+      let found = false;
+
+      for (const userId in users) {
+        const user = users[userId];
+        if (user.email === email && user.password === password) {
+          found = true;
+          Alert.alert("Welcome", `Logged in as ${user.role}`);
+          //Store email locally
+          await AsyncStorage.setItem("userEmail", user.email);
+
+          router.push(user.role === "admin" ? "/(admin)/AdminPanel" : "/main");
+          break;
+        }
+      }
+
+      if (!found) {
+        Alert.alert("Error", "Invalid email or password.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to connect to database.");
+      console.error(error);
     }
   };
 
-  if (redirect === "admin") {
-    return <Redirect href="/(admin)/AdminPanel" />;
-  }
-
-  if (redirect === "user") {
-    return <Redirect href="/main" />;
-  }
 
   return (
     <View style={styles.container}>
@@ -79,7 +90,7 @@ const LoginScreen = () => {
 
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() => router.push("/signup")}>
+        <TouchableOpacity onPress={() => router.push("../signup")}>
           <Text style={styles.signupLink}> Sign Up</Text>
         </TouchableOpacity>
       </View>
