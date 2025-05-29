@@ -51,12 +51,12 @@ export default function HomeScreen() {
     if (imageErrors.has(item.id)) {
       return fallbackImage;
     }
-    
+
     // If image exists and is a valid URL, use it
     if (item.image && isValidUrl(item.image)) {
       return { uri: item.image };
     }
-    
+
     // Otherwise use fallback
     return fallbackImage;
   };
@@ -296,7 +296,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Debug Info */}
-        <View style={{ padding: 20 }}>
+        {/* <View style={{ padding: 20 }}>
           <Text style={{ color: '#fff', marginBottom: 10 }}>
             Debug Info: {products.length} products loaded, {filteredProducts.length} filtered
           </Text>
@@ -305,7 +305,7 @@ export default function HomeScreen() {
               Image errors: {imageErrors.size} products using fallback images
             </Text>
           )}
-        </View>
+        </View> */}
 
         {/* Featured Section */}
         {featuredProducts.length > 0 && (
