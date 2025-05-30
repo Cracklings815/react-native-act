@@ -65,10 +65,23 @@ export default function AdminHome() {
       return
     }
 
+    // Check for duplicate product name (case-insensitive)
+    const duplicateProduct = products.find(
+      (product) => product.name.toLowerCase().trim() === name.toLowerCase().trim()
+    )
+
+    if (duplicateProduct) {
+      Alert.alert(
+        "Product Already Exists", 
+        `A product named "${duplicateProduct.name}" already exists. Please choose a different name.`
+      )
+      return
+    }
+
     try {
       const newProductRef = push(ref(db, "products"))
       const productData = {
-        name,
+        name: name.trim(), // Trim whitespace
         category,
         price: Number.parseFloat(price),
         stock: Number.parseInt(stock),
@@ -77,15 +90,12 @@ export default function AdminHome() {
 
       await set(newProductRef, productData)
 
-      // Option 1: Add the new product directly to local state (faster)
+      // Add the new product directly to local state
       const newProductWithId = {
         id: newProductRef.key!,
         ...productData,
       }
       setProducts((prev) => [...prev, newProductWithId])
-
-      // Option 2: Alternatively, you can refetch all products (more reliable)
-      // await fetchProducts();
 
       Alert.alert("Success", "Product added successfully.")
 

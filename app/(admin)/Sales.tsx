@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     transactionsList: {
-        marginBottom: 20,
+        marginBottom: 80,
     },
     noTransactionsContainer: {
         alignItems: 'center',

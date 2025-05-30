@@ -251,6 +251,7 @@ export default function HomeScreen() {
             <View>
               <Text style={styles.welcomeText}>Welcome to</Text>
               <Text style={styles.storeTitle}>DOYKONG</Text>
+              <Text style={styles.welcomeText}>Online Fish Store</Text>
             </View>
             <TouchableOpacity style={styles.notificationButton}>
               <Ionicons name="notifications-outline" size={24} color="#fff" />

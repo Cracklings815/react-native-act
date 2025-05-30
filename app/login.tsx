@@ -51,8 +51,7 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
-
+      <Text style={styles.title}>Welcome to DOYKONG</Text>
       <View style={styles.inputContainer}>
         <Ionicons name="mail" size={20} color="#873A3A" style={styles.icon} />
         <TextInput
